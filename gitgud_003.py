@@ -92,6 +92,7 @@ It is interesting to see it can handle audio/speech recognition and image-text r
 """
 
 import nltk
+import PyPDF2
 import os
 import re
 from string import punctuation
@@ -100,7 +101,7 @@ import textract  # for doc and docx file formats
 
 def preprocess_text(text):
     text = text.lower()  # Lowercase text
-    text = re.sub(f"[{re.escape(punctuation)}]", "", text)  # Remove punctuation
+    # text = re.sub(f"[{re.escape(punctuation)}]", "", text)  # Remove punctuation
     text = " ".join(text.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
     return text
 
@@ -135,11 +136,48 @@ fpath_1 = r'D:\books'
 text_files = []
 keyword = "charm"
 
-test_extn = 'pdf'
 file_list = walk_directory(fpath_1)
-pdf_list = find_file_ext(file_list, test_extn)
-test_text = preprocess_text(str(extract_text(pdf_list[0], test_extn)))
-print(test_text)
+
+test_extn_rtf = 'rtf'
+rtf_list = find_file_ext(file_list, test_extn_rtf)
+if rtf_list:
+    test_text_rtf = preprocess_text(str(extract_text(rtf_list[0], test_extn_rtf)))
+
+test_extn_pdf = 'pdf'
+pdf_list = find_file_ext(file_list, test_extn_pdf)
+if pdf_list:
+    """
+    FIRST TEST HERE IS WITH TEXTRACT LIBRARY
+    """
+    test_text_pdf = ((extract_text(pdf_list[1], test_extn_pdf)).decode('UTF-8'))
+    # test_text_pdf = preprocess_text((extract_text(pdf_list[1], test_extn_pdf)).decode('UTF-8'))
+    print(test_text_pdf)
+    """
+    SECOND TEST HERE IS WITH PYPDF2 LIBRARY
+    """
+    pdfFileObj = open(pdf_list[1], 'rb')  # create a file handler for reading in a pdf file object
+    pdfReader = PyPDF2.PdfFileReader(pdfFileObj)  # Call/initialize the PyPDF2 library
+    num_pages = len(pdfReader.pages)  # read # of pages from the pdf doc
+    page_text = []
+
+    for page in range(int(num_pages)):  # use int to make sure it's a whole number value
+        page_text.append(pdfReader.getPage(page).extractText())  # append each page's text to a new index in page_text list
+
+test_extn_docx = 'docx'
+docx_list = find_file_ext(file_list, test_extn_docx)
+if docx_list:  # check for empties
+    test_text_docx = preprocess_text(str(extract_text(docx_list[0], test_extn_docx)))
+    print(test_text_docx)
+
+test_extn_html = 'html'
+html_list = find_file_ext(file_list, test_extn_html)
+if html_list:  # check for empties
+    test_text_html = ((extract_text(html_list[102], test_extn_html)).decode('UTF-8'))
+    print(test_text_html)
+
+for file_item in html_list:
+    print(file_item)
+
 
 """
 FIND THE LOCATIONS OF KEYWORDS IN A GIVEN BODY OF TEXT
