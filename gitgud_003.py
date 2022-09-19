@@ -138,20 +138,32 @@ keyword = "charm"
 
 file_list = walk_directory(fpath_1)
 
+"""
+RTF TESTING SECTION
+"""
+
 test_extn_rtf = 'rtf'
 rtf_list = find_file_ext(file_list, test_extn_rtf)
-if rtf_list:
+if rtf_list:  # check for empty lists first
     test_text_rtf = preprocess_text(str(extract_text(rtf_list[0], test_extn_rtf)))
+    print(test_text_rtf)
+    test_text = test_text_rtf
+
+"""
+PDF TESTING SECTION
+"""
 
 test_extn_pdf = 'pdf'
 pdf_list = find_file_ext(file_list, test_extn_pdf)
-if pdf_list:
+if pdf_list:  # check for empty lists first
     """
     FIRST TEST HERE IS WITH TEXTRACT LIBRARY
     """
     test_text_pdf = ((extract_text(pdf_list[1], test_extn_pdf)).decode('UTF-8'))
     # test_text_pdf = preprocess_text((extract_text(pdf_list[1], test_extn_pdf)).decode('UTF-8'))
     print(test_text_pdf)
+    test_text = test_text_pdf
+
     """
     SECOND TEST HERE IS WITH PYPDF2 LIBRARY
     """
@@ -163,17 +175,35 @@ if pdf_list:
     for page in range(int(num_pages)):  # use int to make sure it's a whole number value
         page_text.append(pdfReader.getPage(page).extractText())  # append each page's text to a new index in page_text list
 
+"""
+DOC/DOCX TESTING SECTION
+"""
+docx_test_file_name = r'Sample_Prospectus_2.docx'
+docx_test_file_path = r'D:\applications\PyCharm Projects\gitgud_01\test_documents\docx'
+docx_test_file = os.path.join(docx_test_file_path,docx_test_file_name)
+
 test_extn_docx = 'docx'
 docx_list = find_file_ext(file_list, test_extn_docx)
-if docx_list:  # check for empties
-    test_text_docx = preprocess_text(str(extract_text(docx_list[0], test_extn_docx)))
+if docx_list:  # check for empty lists first
+    # test_text_docx = preprocess_text((extract_text(docx_test_file, test_extn_docx)).decode('UTF-8'))
+    test_text_docx = ((extract_text(docx_test_file, test_extn_docx)).decode('UTF-8'))
     print(test_text_docx)
+    test_text = test_text_docx
+
+"""
+HTML TESTING SECTION
+"""
 
 test_extn_html = 'html'
 html_list = find_file_ext(file_list, test_extn_html)
-if html_list:  # check for empties
+if html_list:  # check for empty lists first
     test_text_html = ((extract_text(html_list[102], test_extn_html)).decode('UTF-8'))
     print(test_text_html)
+    test_text = test_text_html
+
+"""
+MISC DEBUG SECTION
+"""
 
 for file_item in html_list:
     print(file_item)
