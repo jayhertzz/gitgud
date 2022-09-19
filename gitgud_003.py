@@ -104,9 +104,15 @@ from string import punctuation
 import textract  # for doc and docx file formats
 
 
-def preprocess_text(text):
+def preprocess_text_keep_punc(text):
     text = text.lower()  # Lowercase text
     # text = re.sub(f"[{re.escape(punctuation)}]", "", text)  # Remove punctuation
+    text = " ".join(text.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
+    return text
+
+def preprocess_text_remove_punc(text):
+    text = text.lower()  # Lowercase text
+    text = re.sub(f"[{re.escape(punctuation)}]", "", text)  # Remove punctuation
     text = " ".join(text.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
     return text
 
@@ -134,6 +140,30 @@ def find_file_ext(file_name_list, extn):
     return extn_list
 
 
+def count_CRs(in_text):
+    # count the various styles of LineFeeds and Carriage Returns
+    cr_count = int(in_text.count('\n'))
+    crLF_count = int(in_text.count('\r\n'))
+    LF_count = int(in_text.count('\r'))
+    # if any CRLF combos are found, reduce the cr and LF individual counts by the same amount
+    # removes redundant counting
+    if crLF_count > 0:
+        cr_count -= crLF_count
+        LF_count -= crLF_count
+    # sum and send out
+    return cr_count + crLF_count + LF_count
+
+
+def count_words(in_text):
+    proc_text = preprocess_text_remove_punc(in_text)
+    return len(proc_text.split(' '))
+
+
+def count_sentences(text):
+    sentences = nltk.sent_tokenize(text)
+    return len(sentences)
+
+
 """
 TEST FLAGS
 """
@@ -159,7 +189,7 @@ RTF TESTING SECTION
 test_extn_rtf = 'rtf'
 rtf_list = find_file_ext(file_list, test_extn_rtf)
 if rtf_list and rtf_flag:  # check for empty lists first
-    test_text_rtf = preprocess_text(str(extract_text(rtf_list[0], test_extn_rtf)))
+    test_text_rtf = preprocess_text_remove_punc(str(extract_text(rtf_list[0], test_extn_rtf)))
     print(test_text_rtf)
     test_text = test_text_rtf
 
@@ -229,19 +259,27 @@ FIND THE LOCATIONS OF KEYWORDS IN A GIVEN BODY OF TEXT
 keyword matches on the sanitized data set will not yield much in the way of location data.
     It will yield page #, but not word #, due to false-positive word parsing of punctuation and other factors.
     
-We will eventually need to feed back some parameters of the search result into 
+We will eventually need to feed back some parameters of the search result to the front-end and elsewhere
+
+DEPENDENCIES:
+    the functionality of this algorithm depends on the data structure which:
+    1 text page = 1 list index (i.e. page_text is a list(type))
 """
 keywords = ['adopt']
 
 # TODO: Make this search algorithm into a callable definition/method. Possibly a recursive implementation
-results = []
-for i in range(len(page_text)):
+file_keyword_search_results = []
+files_results = {}
+
+for i in range(len(page_text)):  # do the following subroutine for each page
     page_num = i  # intuitive var name to hold page number for result storage
 
-    for keyword in keywords:
-        page_keyword_count = page_text[i].lower().count(keyword.lower())
-        prev_CR_count = 0
+    for keyword in keywords:  # do the following subroutine for each keyword in the list 'keywords'
         text_body = page_text[i].lower()
+        page_keyword_count = text_body.count(keyword.lower())
+        prev_CR_count = 0  # initialize the carriage return counter var
+        prev_word_count = 0  # initialize the word count var
+        prev_sentence_count = 0  # initialize the word count var
 
         for ja in range(page_keyword_count):
             new_index = text_body.find(keyword.lower())  # search a subset of the original text body
@@ -249,28 +287,23 @@ for i in range(len(page_text)):
                 """ count CRs """
                 trunc = text_body[:new_index]
                 # count the number of carriage returns to keep track of line num.
-                # TODO: capture \r and \r\n also
-                cr_count = prev_CR_count + trunc.count('\n')
+                cr_count = count_CRs(trunc)
+
+                """ count words """
+                word_count = prev_word_count + count_words(trunc)
+                prev_word_count = word_count
+
+                """ count sentences """
+                sentence_count = prev_word_count + count_sentences(trunc)
+                prev_word_count = sentence_count
 
                 """ store results """
-                # TODO: capture results- need to include word, sentence counts as well
-                result = (keyword, page_num, new_index, cr_count)
-                results.append(result)
+                result = (keyword, page_num, new_index, cr_count, word_count, sentence_count)
+                file_keyword_search_results.append(result)
 
                 """ setup the next run """
                 prev_CR_count = cr_count  # keep track of previous CR counts to optimize next run CR counting operation
                 text_body = text_body[new_index+1:]  # truncate the text body to exclude this run's found keyword
-
-
-
-
-
-
-
-
-
-
-
 
 
 
