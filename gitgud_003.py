@@ -11,6 +11,11 @@ now, Numpy
        pip install --user -U numpy
 finally, run this cmd in your python console
        nltk.download('punkt')
+
+
+EXAMPLE CODE
+# words = nltk.word_tokenize()
+# sentences = nltk.sent_tokenize()
 -------------------------------
 
 pip install PyPDF2
@@ -129,12 +134,21 @@ def find_file_ext(file_name_list, extn):
     return extn_list
 
 
-fpath_pdf = r'D:\books\Sapiens_ A Brief History of Humankind - Yuval Noah Harari.pdf'
-fpath_docx = r'C:\Users\Scragg Family\OneDrive - Florida State University\Fall 2022\CEN4090L\Prospectus Submission\Proj_Prospectus_II_v03.docx'
-fpath_1 = r'D:\books'
+"""
+TEST FLAGS
+"""
+# compatible_types = ['doc', 'docx', 'pdf', 'epub', 'html', 'pptx', 'rtf', 'txt']
+doc_flag = docx_flag = pdf_flag = epub_flag = html_flag = pptx_flag = rtf_flag = txt_flag = False
+pdf_flag = True
 
+"""
+END TEST FLAGS
+"""
+
+
+fpath_1 = r'D:\applications\PyCharm Projects\gitgud_01\test_documents_01'
+page_text = ''  # initialize variable to hold text for testing
 text_files = []
-keyword = "charm"
 
 file_list = walk_directory(fpath_1)
 
@@ -144,7 +158,7 @@ RTF TESTING SECTION
 
 test_extn_rtf = 'rtf'
 rtf_list = find_file_ext(file_list, test_extn_rtf)
-if rtf_list:  # check for empty lists first
+if rtf_list and rtf_flag:  # check for empty lists first
     test_text_rtf = preprocess_text(str(extract_text(rtf_list[0], test_extn_rtf)))
     print(test_text_rtf)
     test_text = test_text_rtf
@@ -155,14 +169,14 @@ PDF TESTING SECTION
 
 test_extn_pdf = 'pdf'
 pdf_list = find_file_ext(file_list, test_extn_pdf)
-if pdf_list:  # check for empty lists first
+if pdf_list and pdf_flag:  # check for empty lists first
     """
     FIRST TEST HERE IS WITH TEXTRACT LIBRARY
     """
-    test_text_pdf = ((extract_text(pdf_list[1], test_extn_pdf)).decode('UTF-8'))
-    # test_text_pdf = preprocess_text((extract_text(pdf_list[1], test_extn_pdf)).decode('UTF-8'))
-    print(test_text_pdf)
-    test_text = test_text_pdf
+    # test_text_pdf = ((extract_text(pdf_list[1], test_extn_pdf)).decode('UTF-8'))
+    # # test_text_pdf = preprocess_text((extract_text(pdf_list[1], test_extn_pdf)).decode('UTF-8'))
+    # print(test_text_pdf)
+    # test_text = test_text_pdf
 
     """
     SECOND TEST HERE IS WITH PYPDF2 LIBRARY
@@ -173,18 +187,19 @@ if pdf_list:  # check for empty lists first
     page_text = []
 
     for page in range(int(num_pages)):  # use int to make sure it's a whole number value
-        page_text.append(pdfReader.getPage(page).extractText())  # append each page's text to a new index in page_text list
+        page_text.append(
+            pdfReader.getPage(page).extractText())  # append each page's text to a new index in page_text list
 
 """
 DOC/DOCX TESTING SECTION
 """
 docx_test_file_name = r'Sample_Prospectus_2.docx'
 docx_test_file_path = r'D:\applications\PyCharm Projects\gitgud_01\test_documents\docx'
-docx_test_file = os.path.join(docx_test_file_path,docx_test_file_name)
+docx_test_file = os.path.join(docx_test_file_path, docx_test_file_name)
 
 test_extn_docx = 'docx'
 docx_list = find_file_ext(file_list, test_extn_docx)
-if docx_list:  # check for empty lists first
+if docx_list and docx_flag:  # check for empty lists first
     # test_text_docx = preprocess_text((extract_text(docx_test_file, test_extn_docx)).decode('UTF-8'))
     test_text_docx = ((extract_text(docx_test_file, test_extn_docx)).decode('UTF-8'))
     print(test_text_docx)
@@ -196,7 +211,7 @@ HTML TESTING SECTION
 
 test_extn_html = 'html'
 html_list = find_file_ext(file_list, test_extn_html)
-if html_list:  # check for empty lists first
+if html_list and html_flag:  # check for empty lists first
     test_text_html = ((extract_text(html_list[102], test_extn_html)).decode('UTF-8'))
     print(test_text_html)
     test_text = test_text_html
@@ -205,8 +220,8 @@ if html_list:  # check for empty lists first
 MISC DEBUG SECTION
 """
 
-for file_item in html_list:
-    print(file_item)
+
+
 
 
 """
@@ -216,18 +231,55 @@ keyword matches on the sanitized data set will not yield much in the way of loca
     
 We will eventually need to feed back some parameters of the search result into 
 """
-# j = 0
-# for i in range(len(sentences)):
-#     # sentences_punc = re.sub(f"[{re.escape(punctuation)}]", "", sentences)  # Remove punctuation
-#     # words = nltk.word_tokenize(sentences[i])
-#     words = nltk.word_tokenize(sentences)
-#     words_split = sentences.split(' ')
-#     for word in words:
-#         if word in keyword:
-#             # need to save the word and page index here of both the keyword and context matches
-#             print("found another, total: {}".format(j))
-#             j += 1
-#
+keywords = ['adopt']
+
+# TODO: Make this search algorithm into a callable definition/method. Possibly a recursive implementation
+results = []
+for i in range(len(page_text)):
+    page_num = i  # intuitive var name to hold page number for result storage
+
+    for keyword in keywords:
+        page_keyword_count = page_text[i].lower().count(keyword.lower())
+        prev_CR_count = 0
+        text_body = page_text[i].lower()
+
+        for ja in range(page_keyword_count):
+            new_index = text_body.find(keyword.lower())  # search a subset of the original text body
+            if new_index > -1:  # only make a record if a match is found (new_index == -1 means no match)
+                """ count CRs """
+                trunc = text_body[:new_index]
+                # count the number of carriage returns to keep track of line num.
+                # TODO: capture \r and \r\n also
+                cr_count = prev_CR_count + trunc.count('\n')
+
+                """ store results """
+                # TODO: capture results- need to include word, sentence counts as well
+                result = (keyword, page_num, new_index, cr_count)
+                results.append(result)
+
+                """ setup the next run """
+                prev_CR_count = cr_count  # keep track of previous CR counts to optimize next run CR counting operation
+                text_body = text_body[new_index+1:]  # truncate the text body to exclude this run's found keyword
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # text = 'Due to the lack of an enhanced search functionality available for standalone text sources, ' \
