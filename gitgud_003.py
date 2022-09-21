@@ -94,14 +94,24 @@ handles the following file types:
 We obviously only need the text-based ones.
 It is interesting to see it can handle audio/speech recognition and image-text recognition
     May be a stretch goal here
+
+*****************************************
+
+docx manipulation
+https://automatetheboringstuff.com/chapter13/
+https://python-docx.readthedocs.io/en/latest/
+
+
 """
 
 import nltk
 import PyPDF2
 import os
-import re
 from string import punctuation
-import textract  # for doc and docx file formats
+import textract
+from docx2pdf import convert  # for converting docx to pdf, for page counting
+import re
+import docx  # python-docx
 
 
 def preprocess_text_keep_punc(text):
@@ -109,6 +119,7 @@ def preprocess_text_keep_punc(text):
     # text = re.sub(f"[{re.escape(punctuation)}]", "", text)  # Remove punctuation
     text = " ".join(text.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
     return text
+
 
 def preprocess_text_remove_punc(text):
     text = text.lower()  # Lowercase text
@@ -164,21 +175,26 @@ def count_sentences(text):
     return len(sentences)
 
 
+def convert_docx_to_pdf(docx_file_path):
+    return convert(docx_file_path)
+
+
 """
 TEST FLAGS
 """
-# compatible_types = ['doc', 'docx', 'pdf', 'epub', 'html', 'pptx', 'rtf', 'txt']
+# enable your debugging sections using these flags
 doc_flag = docx_flag = pdf_flag = epub_flag = html_flag = pptx_flag = rtf_flag = txt_flag = False
 pdf_flag = True
+doc_flag = True
+docx_flag = True
 
 """
 END TEST FLAGS
 """
 
-
 fpath_1 = r'D:\applications\PyCharm Projects\gitgud_01\test_documents_01'
 page_text = ''  # initialize variable to hold text for testing
-text_files = []
+# text_files = []
 
 file_list = walk_directory(fpath_1)
 
@@ -223,17 +239,26 @@ if pdf_list and pdf_flag:  # check for empty lists first
 """
 DOC/DOCX TESTING SECTION
 """
-docx_test_file_name = r'Sample_Prospectus_2.docx'
-docx_test_file_path = r'D:\applications\PyCharm Projects\gitgud_01\test_documents\docx'
-docx_test_file = os.path.join(docx_test_file_path, docx_test_file_name)
 
 test_extn_docx = 'docx'
 docx_list = find_file_ext(file_list, test_extn_docx)
 if docx_list and docx_flag:  # check for empty lists first
     # test_text_docx = preprocess_text((extract_text(docx_test_file, test_extn_docx)).decode('UTF-8'))
-    test_text_docx = ((extract_text(docx_test_file, test_extn_docx)).decode('UTF-8'))
+
+    """slow docx-to-pdf conversion but successful"""
+    # for docx_file in docx_list:
+    #     convert_docx_to_pdf(docx_file)
+
+    """python-docx code"""
+    test_doc = docx.Document(docx_list[1])
+    print('The number of paragraphs in this document is: {}'.format(len(test_doc.paragraphs)))
+    """end python-docx code"""
+
+    """textract code"""
+    test_text_docx = ((extract_text(docx_list[0], test_extn_docx)).decode('UTF-8'))
     print(test_text_docx)
     test_text = test_text_docx
+    """end textract code"""
 
 """
 HTML TESTING SECTION
@@ -242,7 +267,7 @@ HTML TESTING SECTION
 test_extn_html = 'html'
 html_list = find_file_ext(file_list, test_extn_html)
 if html_list and html_flag:  # check for empty lists first
-    test_text_html = ((extract_text(html_list[102], test_extn_html)).decode('UTF-8'))
+    test_text_html = ((extract_text(html_list[0], test_extn_html)).decode('UTF-8'))
     print(test_text_html)
     test_text = test_text_html
 
@@ -250,8 +275,7 @@ if html_list and html_flag:  # check for empty lists first
 MISC DEBUG SECTION
 """
 
-
-
+# empty
 
 
 """
@@ -271,50 +295,43 @@ keywords = ['adopt']
 file_keyword_search_results = []
 files_results = {}
 
-for i in range(len(page_text)):  # do the following subroutine for each page
-    page_num = i  # intuitive var name to hold page number for result storage
+# this section only works for pdfs at the moment
+if pdf_flag:
+    for i in range(len(page_text)):  # do the following subroutine for each page
+        page_num = i  # intuitive var name to hold page number for result storage
 
-    for keyword in keywords:  # do the following subroutine for each keyword in the list 'keywords'
-        text_body = page_text[i].lower()
-        page_keyword_count = text_body.count(keyword.lower())
-        prev_CR_count = 0  # initialize the carriage return counter var
-        prev_word_count = 0  # initialize the word count var
-        prev_sentence_count = 0  # initialize the word count var
+        for keyword in keywords:  # do the following subroutine for each keyword in the list 'keywords'
+            text_body = page_text[i].lower()
+            page_keyword_count = text_body.count(keyword.lower())
+            prev_CR_count = 0  # initialize the carriage return counter var
+            prev_word_count = 0  # initialize the word count var
+            prev_sentence_count = 0  # initialize the word count var
 
-        for ja in range(page_keyword_count):
-            new_index = text_body.find(keyword.lower())  # search a subset of the original text body
-            if new_index > -1:  # only make a record if a match is found (new_index == -1 means no match)
-                """ count CRs """
-                trunc = text_body[:new_index]
-                # count the number of carriage returns to keep track of line num.
-                cr_count = count_CRs(trunc)
+            for ja in range(page_keyword_count):
+                new_index = text_body.find(keyword.lower())  # search a subset of the original text body
+                if new_index > -1:  # only make a record if a match is found (new_index == -1 means no match)
+                    """ count CRs """
+                    trunc = text_body[:new_index]
+                    # count the number of carriage returns to keep track of line num.
+                    cr_count = count_CRs(trunc)
 
-                """ count words """
-                word_count = prev_word_count + count_words(trunc)
-                prev_word_count = word_count
+                    """ count words """
+                    word_count = prev_word_count + count_words(trunc)
+                    prev_word_count = word_count
 
-                """ count sentences """
-                sentence_count = prev_word_count + count_sentences(trunc)
-                prev_word_count = sentence_count
+                    """ count sentences """
+                    sentence_count = prev_word_count + count_sentences(trunc)
+                    prev_word_count = sentence_count
 
-                """ store results """
-                result = (keyword, page_num, new_index, cr_count, word_count, sentence_count)
-                file_keyword_search_results.append(result)
+                    """ store results """
+                    result = (keyword, page_num, new_index, cr_count, word_count, sentence_count)
+                    file_keyword_search_results.append(result)
 
-                """ setup the next run """
-                prev_CR_count = cr_count  # keep track of previous CR counts to optimize next run CR counting operation
-                text_body = text_body[new_index+1:]  # truncate the text body to exclude this run's found keyword
+                    """ setup the next run """
+                    prev_CR_count = cr_count  # keep track of previous CR counts to optimize next run CR counting operation
+                    text_body = text_body[new_index + 1:]  # truncate the text body to exclude this run's found keyword
 
-
-
-
-
-
-
-
-
-
-
+"""test text body"""
 # text = 'Due to the lack of an enhanced search functionality available for standalone text sources, ' \
 #        'our team (gitgud) proposes a multi-format compatible search engine designed to enhance user ' \
 #        'search precision. This search engine will take PDF, DOCX, TXT, RTF, HTML, etc. files contained ' \
