@@ -114,13 +114,7 @@ import re
 import docx  # python-docx
 
 
-def preprocess_text_keep_punc(text):
-    text = text.lower()  # Lowercase text
-    # text = re.sub(f"[{re.escape(punctuation)}]", "", text)  # Remove punctuation
-    text = " ".join(text.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
-    return text
-
-
+# condition text: lower-case, remove punctuation, remove some misc. items
 def preprocess_text_remove_punc(text):
     text = text.lower()  # Lowercase text
     text = re.sub(f"[{re.escape(punctuation)}]", "", text)  # Remove punctuation
@@ -128,11 +122,21 @@ def preprocess_text_remove_punc(text):
     return text
 
 
+# conditions text: lower-case, remove some misc. items
+def preprocess_text_keep_punc(text):
+    text = text.lower()  # Lowercase text
+    # text = re.sub(f"[{re.escape(punctuation)}]", "", text)  # Remove punctuation
+    text = " ".join(text.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
+    return text
+
+
+# uses textract to extract text
 def extract_text(filepath, extn):
     text = textract.process(filename=filepath, text=textract.process(filepath, extension=extn))
     return text
 
 
+# pulls ALL matching files from a given directory and its subdirectories
 def walk_directory(root_path):
     compatible_types = ['doc', 'docx', 'pdf', 'epub', 'html', 'pptx', 'rtf', 'txt']
     file_name_list = []
@@ -143,6 +147,7 @@ def walk_directory(root_path):
     return file_name_list
 
 
+# searches the walk_directory output for files of a particular file-type extension, returns a list of those files
 def find_file_ext(file_name_list, extn):
     extn_list = []
     for name in file_name_list:
@@ -151,6 +156,7 @@ def find_file_ext(file_name_list, extn):
     return extn_list
 
 
+# counts carriage returns/line feeds/combos (crLF)
 def count_CRs(in_text):
     # count the various styles of LineFeeds and Carriage Returns
     cr_count = int(in_text.count('\n'))
@@ -175,6 +181,7 @@ def count_sentences(text):
     return len(sentences)
 
 
+# creates a pdf file from a docx file. uses docx2pdf
 def convert_docx_to_pdf(docx_file_path):
     return convert(docx_file_path)
 
@@ -330,6 +337,30 @@ if pdf_flag:
                     """ setup the next run """
                     prev_CR_count = cr_count  # keep track of previous CR counts to optimize next run CR counting operation
                     text_body = text_body[new_index + 1:]  # truncate the text body to exclude this run's found keyword
+
+"""
+TODO SECTION
+I made this section to capture some of the other things we need to take care of in back-end
+"""
+# TODO: integrate epub file-type handling
+# TODO: handle boolean search parameters (constrained to: and/or/not)
+# TODO: indexing results (hash table?)
+# TODO: for doc and docx, only convert documents with found keywords to pdf
+#           keep track of which documents are converted to delete them later (but save pdf page results results)
+# TODO: figure out how to open a document/ then, open it to a specific page
+# TODO: implement context word searching
+# TODO: implement scoring / include score in results storage tuple
+# TODO: continue testing other file types with textract/other libraries
+# TODO: include the filepath in the results storage tuple
+# TODO: exception handling when a document read fails (skip the file/print an error to the user?)
+# TODO: multithreading/parallel processing
+# TODO: use our current textraction method, which is very fast, to find the subset of docx files containing the requested text
+#   if its a large number, we can choose to just convert the highest scoring results to pdf and check page numbers
+#   and dont display page numbers for any other docx results unless its asked for, then the program can run and perform the search
+#   we would probably want the search results to display consistently too.. so none of the result would initially have page numbers.
+#   only upon expansion maybe.. like a '+' button the user has to hit on each result
+
+"""end TODO section"""
 
 """test text body"""
 # text = 'Due to the lack of an enhanced search functionality available for standalone text sources, ' \
