@@ -344,9 +344,11 @@ I made this section to capture some of the other things we need to take care of 
 """
 # TODO: integrate epub file-type handling
 # TODO: handle boolean search parameters (constrained to: and/or/not)
-# TODO: indexing results (hash table?)
+# TODO: indexing results (hash table?) & caching result - store previous search results for faster future searches
+#   including category assignments
+# TODO: Document category assignment algorithm (ML?)
 # TODO: for doc and docx, only convert documents with found keywords to pdf
-#           keep track of which documents are converted to delete them later (but save pdf page results results)
+#   keep track of which documents are converted to delete them later (but save pdf page results results)
 # TODO: figure out how to open a document/ then, open it to a specific page
 # TODO: implement context word searching
 # TODO: implement scoring / include score in results storage tuple
@@ -354,6 +356,10 @@ I made this section to capture some of the other things we need to take care of 
 # TODO: include the filepath in the results storage tuple
 # TODO: exception handling when a document read fails (skip the file/print an error to the user?)
 # TODO: multithreading/parallel processing
+# TODO: multi-thread/parallel process the document search as a background process while we focus the
+#   main program on the available results
+# TODO: open documents at a specific area in results
+# TODO:
 # TODO: use our current textraction method, which is very fast, to find the subset of docx files containing the requested text
 #   if its a large number, we can choose to just convert the highest scoring results to pdf and check page numbers
 #   and dont display page numbers for any other docx results unless its asked for, then the program can run and perform the search
