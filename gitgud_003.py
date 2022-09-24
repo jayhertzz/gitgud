@@ -116,6 +116,9 @@ import re
 
 
 # condition text: lower-case, remove punctuation, remove some misc. items
+from ebooklib import epub
+
+
 def preprocess_text_remove_punc(text):
     text = text.lower()  # Lowercase text
     text = re.sub(f"[{re.escape(punctuation)}]", "", text)  # Remove punctuation
@@ -127,7 +130,7 @@ def preprocess_text_remove_punc(text):
 def preprocess_text_keep_punc(text):
     text = text.lower()  # Lowercase text
     # text = re.sub(f"[{re.escape(punctuation)}]", "", text)  # Remove punctuation
-    text = " ".join(text.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
+    # text = " ".join(text.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
     return text
 
 
@@ -195,9 +198,11 @@ def perform_search_nopage(text, keywords):
         prev_CR_count = 0  # initialize the carriage return counter var
         prev_word_count = 0  # initialize the word count var
         prev_sentence_count = 0  # initialize the word count var
+        prev_char_find_index = 0
 
         for j in range(keyword_count):
             char_find_index = text_body.find(keyword)  # search a subset of the original text body
+            prev_char_find_index = char_find_index + prev_char_find_index
             if char_find_index > -1:  # only make a record if a match is found (char_find_index == -1 means no match)
                 """ count CRs """
                 trunc_text = text_body[:char_find_index]
@@ -214,7 +219,7 @@ def perform_search_nopage(text, keywords):
                 prev_sentence_count = sentence_count
 
                 """ store results """
-                result = (keyword, char_find_index, cr_count, word_count, sentence_count)
+                result = (keyword, prev_char_find_index, cr_count, word_count, sentence_count)
                 file_keyword_search_results.append(result)
 
                 """ setup the next run """
@@ -234,9 +239,11 @@ def perform_search_with_page(page_text, keywords):
             prev_CR_count = 0  # initialize the carriage return counter var
             prev_word_count = 0  # initialize the word count var
             prev_sentence_count = 0  # initialize the word count var
+            prev_char_find_index = 0
 
             for j in range(page_keyword_count):
                 char_find_index = text_body.find(keyword)  # search a subset of the original text body
+                prev_char_find_index = char_find_index + prev_char_find_index
                 if char_find_index > -1:  # only make a record if a match is found (char_find_index == -1 means no match)
                     """ count CRs """
                     trunc = text_body[:char_find_index]
@@ -253,7 +260,7 @@ def perform_search_with_page(page_text, keywords):
                     prev_sentence_count = sentence_count
 
                     """ store results """
-                    result = (keyword, page_num, char_find_index, cr_count, word_count, sentence_count)
+                    result = (keyword, page_num+1, prev_char_find_index, cr_count, word_count, sentence_count)
                     file_keyword_search_results.append(result)
 
                     """ setup the next run """
@@ -283,21 +290,19 @@ def get_text(file_path, file_extn, page_req_flag=False):
             new_file_path = file_path.replace('.docx', '.pdf')
             return get_text(new_file_path, 'pdf', True)
 
-        # elif file_extn == 'epub':
-        #     epub_text = epub.read_epub(file_path)
-        #     print('here')
-
+        elif file_extn == 'epub':
+            epub_text = process_epub_for_pages(get_text(file_path, file_extn))
+            return epub_text
 
     else:
         # TODO: build a section here to decode the text based on input file format e.g. .decode('UTF-8')
-        return extract_text(file_path, file_extn)
+        return (extract_text(file_path, file_extn)).decode('UTF-8')
 
 
 def process_epub_for_pages(epub_text):
-    epub_pages = []
-    page_index = 0
-    while (page_index > -1):
-        page_index
+    return epub_text.split('GITGUD_PAGE_NUM_')
+
+
 
 
 """
@@ -309,12 +314,14 @@ TEST FLAGS
 doc_flag = docx_flag = pdf_flag = epub_flag = txt_flag = \
            pptx_flag = rtf_flag = html_flag = docx_conv_flag = False
 
-# pdf_flag = True
+pdf_flag = True
 # # doc_flag = True
 # docx_flag = True
-epub_flag = True
+# epub_flag = True
 
-keywords = ['and']  # small set used for testing. guaranteed hits
+keywords = ['var']  # small set used for testing. guaranteed hits
+nopage_results_str = '(keyword, char_find_index, cr_count, word_count, sentence_count)'
+paged_results_str = '(keyword, page_num, char_find_index, cr_count, word_count, sentence_count)'
 
 # context user inputs for nearby words
 context_keywords = ['the']  # small set used for testing. guaranteed hits
@@ -322,6 +329,7 @@ min_sentence_filter = 0
 max_sentence_filter = 5
 min_word_filter = 0
 max_word_filter = 10
+
 """
 END TEST FLAGS
 """
@@ -337,6 +345,8 @@ compatible_types = ['html', 'txt', 'doc', 'docx', 'pdf', 'epub', 'pptx', 'rtf']
 
 # find all files in a directory:
 file_list = walk_directory(test_fpath)
+paged_results = []
+nopage_results = []
 
 """
 RTF TESTING SECTION
@@ -373,21 +383,14 @@ PDF TESTING SECTION
 test_extn_pdf = 'pdf'
 pdf_list = find_file_ext(file_list, test_extn_pdf)
 if pdf_list and pdf_flag:  # check for empty lists first
-    """
-    FIRST TEST HERE IS WITH TEXTRACT LIBRARY, which destroys page #s
-    --deprecated
-    """
-    # test_text_pdf = ((extract_text(pdf_list[1], test_extn_pdf)).decode('UTF-8'))
-    # # test_text_pdf = preprocess_text((extract_text(pdf_list[1], test_extn_pdf)).decode('UTF-8'))
-    # print(test_text_pdf)
-    # test_text = test_text_pdf
+    pdf_paged_text = get_text(pdf_list[1], test_extn_pdf, True)
+    pdf_paged_results = perform_search_with_page(pdf_paged_text, keywords)
 
-    """
-    SECOND TEST HERE IS WITH PYPDF2 LIBRARY, which retains page #s
-    """
+    pdf_nopage_text = get_text(pdf_list[1], test_extn_pdf)
+    pdf_nopage_results = perform_search_nopage(pdf_nopage_text, keywords)
 
-    pdf_text = get_text(pdf_list[1], test_extn_pdf, True)
-    pdf_results = perform_search_with_page(pdf_text, keywords)
+    paged_results = pdf_paged_results
+    nopage_results = pdf_nopage_results
 
 """
 DOCX TESTING SECTION
@@ -446,21 +449,33 @@ epub_list = find_file_ext(file_list, test_extn_epub)
 if epub_list and epub_flag:  # check for empty lists first
     epub_file = epub_list[0]
 
-    """ebooklib code"""
-    # epub_paged_text = get_text(epub_file, test_extn_epub, True)
+    """ebooklib code - expensive operation to extract page numbers- only execute if keyword match found and page 
+    requested in results"""
+    epub_paged_text = get_text(epub_file, test_extn_epub, True)
+    epub_paged_results = perform_search_with_page(epub_paged_text, keywords)
     """end ebooklib code"""
 
-    """textract code"""
+    """textract code - quick run to search for keyword matches, less info"""
     epub_nopage_text = (get_text(epub_file, test_extn_epub)).decode('UTF-8')
     epub_nopage_results = perform_search_nopage(epub_nopage_text, keywords)
     """end textract code"""
+    paged_results = epub_paged_results
+    nopage_results = epub_nopage_results
 
 """
 MISC DEBUG SECTION
 """
 
+print('\n\n\n*******PAGED RESULTS*******\n{}\n\n'.format(paged_results_str))
 # empty
+if paged_results:
+    for result in paged_results:
+        print(str(result) + '\n')
 
+print('\n\n\n*******NO PAGE RESULTS*******\n{}\n\n'.format(nopage_results_str))
+if nopage_results:
+    for result in nopage_results:
+        print(str(result) + '\n')
 
 """
 FIND THE LOCATIONS OF KEYWORDS IN A GIVEN BODY OF TEXT
@@ -475,6 +490,7 @@ TODO SECTION
 I made this section to capture some of the other things we need to take care of in back-end
 """
 # TODO: integrate epub file-type handling
+#           working on it (zayn & matt)
 # TODO: handle boolean search parameters (constrained to: and/or/not)
 # TODO: indexing results (hash table?) & caching result - store previous search results for faster future searches
 #   including category assignments
