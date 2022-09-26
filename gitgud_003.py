@@ -219,7 +219,9 @@ def perform_search_nopage(text, keywords):
                 prev_sentence_count = sentence_count
 
                 """ store results """
-                result = (keyword, prev_char_find_index, cr_count, word_count, sentence_count)
+                result = ({'keyword': keyword, 'char_index': prev_char_find_index,
+                           'line_count': cr_count, 'word_count': word_count, 'sentence_count': sentence_count})
+                print(result)
                 file_keyword_search_results.append(result)
 
                 """ setup the next run """
@@ -260,7 +262,9 @@ def perform_search_with_page(page_text, keywords):
                     prev_sentence_count = sentence_count
 
                     """ store results """
-                    result = (keyword, page_num+1, prev_char_find_index, cr_count, word_count, sentence_count)
+                    result = ({'keyword': keyword, 'page_num': page_num+1, 'char_index': prev_char_find_index,
+                               'line_count': cr_count, 'word_count': word_count, 'sentence_count': sentence_count})
+                    print(result)
                     file_keyword_search_results.append(result)
 
                     """ setup the next run """
@@ -303,8 +307,6 @@ def process_epub_for_pages(epub_text):
     return epub_text.split('GITGUD_PAGE_NUM_')
 
 
-
-
 """
 USER INPUTS
 &
@@ -319,16 +321,20 @@ pdf_flag = True
 # docx_flag = True
 # epub_flag = True
 
-keywords = ['var']  # small set used for testing. guaranteed hits
 nopage_results_str = '(keyword, char_find_index, cr_count, word_count, sentence_count)'
 paged_results_str = '(keyword, page_num, char_find_index, cr_count, word_count, sentence_count)'
 
-# context user inputs for nearby words
+# user inputs for word(s) matching + context words
+keywords = ['var']  # small set used for testing. guaranteed hits
 context_keywords = ['the']  # small set used for testing. guaranteed hits
-min_sentence_filter = 0
-max_sentence_filter = 5
-min_word_filter = 0
-max_word_filter = 10
+min_sentence_filter = 0  # user input for filtering results containing context words
+max_sentence_filter = 5  # same as above
+min_word_filter = 0  # same as above
+max_word_filter = 10  # same as above
+backward_word_count = 10  # how many words to capture for quick-result displays in results UI
+forward_word_count = 10  # same as above
+
+
 
 """
 END TEST FLAGS
@@ -466,16 +472,16 @@ if epub_list and epub_flag:  # check for empty lists first
 MISC DEBUG SECTION
 """
 
-print('\n\n\n*******PAGED RESULTS*******\n{}\n\n'.format(paged_results_str))
-# empty
-if paged_results:
-    for result in paged_results:
-        print(str(result) + '\n')
-
-print('\n\n\n*******NO PAGE RESULTS*******\n{}\n\n'.format(nopage_results_str))
-if nopage_results:
-    for result in nopage_results:
-        print(str(result) + '\n')
+# print('\n\n\n*******PAGED RESULTS*******\n{}\n\n'.format(paged_results_str))
+# # empty
+# if paged_results:
+#     for result in paged_results:
+#         print(str(result) + '\n')
+#
+# print('\n\n\n*******NO PAGE RESULTS*******\n{}\n\n'.format(nopage_results_str))
+# if nopage_results:
+#     for result in nopage_results:
+#         print(str(result) + '\n')
 
 """
 FIND THE LOCATIONS OF KEYWORDS IN A GIVEN BODY OF TEXT
