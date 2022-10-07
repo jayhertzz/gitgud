@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GitGud Interface</title>
+</head>
+<body>
+<form action="/query" method="POST">
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <ul>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+    <h1>contxt</h1>
+    <input type="text"  value="" placeholder="Required words" name="req">
+    <input type="number" value="" placeholder="Within range" name="range1"><br />
+    <input type="text"  value="" placeholder="Context words" name="con">
+    <input type="number" value="" placeholder="Within range" name="range2"><br />
+    <input type="text"  value="" placeholder="Excluded words" name="not">
+    <input type="number" value="" placeholder="Within range" name="range3"><br />
+    <input type="submit" value="Search">
+</form>
+</body>
+</html>
