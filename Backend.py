@@ -91,7 +91,7 @@ handles the following file types:
 .xlsx via xlrd
 .xls via xlrd
 
-We obviously only need the text-based ones.
+We only need the text-based ones.
 It is interesting to see it can handle audio/speech recognition and image-text recognition
     May be a stretch goal here
 
@@ -133,24 +133,46 @@ class Search:
         #confidence -= (number of matched nots) * 25
         return confidence
 
-#handle storage for results (Zayn Severance)
-class result:
+# handles storage of each keyword match instance
+class AndSearchResult:
+    keyword = ""
+    char_index = -1
+    line_count = -1
+    word_count = -1
+    sentence_count = -1
+    page_count = -1
+
+    #page_ct is optional since some results will not contain this value
+    def __init__(self, kw, char_idx, line_ct, word_ct, sent_ct, page_ct=-1):
+        self.keyword = kw
+        self.char_index = char_idx
+        self.line_count = line_ct
+        self.word_count = word_ct
+        self.sentence_count = sent_ct
+        self.page_count = page_ct
+
+#handle storage for overall file results (Zayn Severance)
+class FileResult:
     filename = ""
     scoring  = 0
     filetype = ""
-    def __init__(self, file, type, score):
+    matches = []
+    def __init__(self, file_name, file_type, score): #modified 'type' to 'file_type' due to overshadow of python built-in kw 'type'
         #this would basically be scored off
-        self.filename = file
-        self.filetype = type
+        self.filename = file_name
+        self.filetype = file_type
         self.scoring  = score
 
+    def add_match(self, result):
+        self.matches.append(result)
 
+
+class Document:
+    paginated = False
+    file_results = FileResult
 
 
 # condition text: lower-case, remove punctuation, remove some misc. items
-
-
-
 def preprocess_text_remove_punc(text):
     text = text.lower()  # Lowercase text
     text = re.sub(f"[{re.escape(punctuation)}]", "", text)  # Remove punctuation
@@ -217,8 +239,8 @@ def count_sentences(text):
 
 
 # creates a pdf file from a docx file. uses docx2pdf
-def convert_docx_to_pdf(docx_file_path):
-    return convert(docx_file_path)
+def convert_docx_to_pdf(source_file_path):
+    return convert(source_file_path)
 
 
 def perform_search_nopage(text, keywords):
