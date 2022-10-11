@@ -1,9 +1,9 @@
 from flask import Flask, render_template, request, session, flash, jsonify
-import sqlite3 as sql
+# import sqlite3 as sql
 import os
-import string, base64
-import pandas as pd
-import Backend
+# import string, base64
+# import pandas as pd
+# import Backend
 
 app = Flask(__name__)
 
