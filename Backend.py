@@ -183,21 +183,13 @@ class Search:
 
 # handles storage of each keyword match instance
 class AndSearch:
-    keyword = ""
-    char_index = -1
-    line_count = -1
-    word_count = -1
-    sentence_count = -1
+    keywords = []
+    and_matches = []
     page_count = -1
 
-    #page_ct is optional since some results will not contain this value
-    def __init__(self, kw, char_idx=-1, line_ct=-1, word_ct=-1, sent_ct=-1, page_ct=-1):
-        self.keyword = kw
-        self.char_index = char_idx
-        self.line_count = line_ct
-        self.word_count = word_ct
-        self.sentence_count = sent_ct
-        self.page_count = page_ct
+    def __init__(self, keywords):
+        self.keywords = keywords
+        self.and_matches = []
 
     # counts carriage returns/line feeds/combos (crLF)
     def count_CRs(self, in_text):
@@ -221,14 +213,17 @@ class AndSearch:
         sentences = nltk.sent_tokenize(text)
         return len(sentences)
 
-    # def perform_initial_search(self, doc):
+    def perform_search(self, document):
+        if document.paginated:
+            self.perform_search_with_page(document)
+        else:
+            self.perform_search_nopage(document)
 
 
-    def perform_search_nopage(self, text, in_keywords):
-        file_keyword_search_results = []
-        for keyword in in_keywords:  # do the following subroutine for each keyword in the list 'keywords'
+    def perform_search_nopage(self, document):
+        for keyword in self.keywords:  # do the following subroutine for each keyword in the list 'keywords'
             keyword = keyword.lower()
-            text_body = preprocess_text_keep_punc(text)
+            text_body = preprocess_text_keep_punc(document.text)
             keyword_count = text_body.count(keyword)
             prev_CR_count = 0  # initialize the carriage return counter var
             prev_word_count = 0  # initialize the word count var
@@ -254,23 +249,23 @@ class AndSearch:
                     prev_sentence_count = sentence_count
 
                     """ store results """
-                    result = AndSearch(keyword, prev_char_find_index,
-                               cr_count,  word_count, sentence_count)
-                    print(result)
-                    file_keyword_search_results.append(result)
+                    self.and_matches.append({'keyword': keyword,
+                                             'char_ct': prev_char_find_index,
+                                             'line_ct':cr_count,
+                                             'word_ct':word_count,
+                                             'sent_ct':sentence_count,
+                                             'page_ct':self.page_count})
 
                     """ setup the next run """
                     text_body = text_body[char_find_index + 1:]  # truncate the text body to exclude this run's found keyword
-        return file_keyword_search_results
 
 
-    def perform_search_with_page(self, page_text, keywords):
-        file_keyword_search_results = []
-        for i in range(len(page_text)):  # do the following subroutine for each page
+    def perform_search_with_page(self, document):
+        for i in range(len(document.paged_text)):  # do the following subroutine for each page
             page_num = i  # intuitive var name to hold page number for result storage
 
-            for keyword in keywords:  # do the following subroutine for each keyword in the list 'keywords'
-                text_body = preprocess_text_keep_punc(page_text[i])
+            for keyword in self.keywords:  # do the following subroutine for each keyword in the list 'keywords'
+                text_body = preprocess_text_keep_punc(document.paged_text[i])
                 keyword = keyword.lower()
                 page_keyword_count = text_body.count(keyword)
                 prev_CR_count = 0  # initialize the carriage return counter var
@@ -297,14 +292,15 @@ class AndSearch:
                         prev_sentence_count = sentence_count
 
                         """ store results """
-                        result = ({'keyword': keyword, 'page_num': page_num+1, 'char_index': prev_char_find_index,
-                                   'line_count': cr_count, 'word_count': word_count, 'sentence_count': sentence_count})
-                        print(result)
-                        file_keyword_search_results.append(result)
+                        self.and_matches.append({'keyword': keyword,
+                                                 'char_ct': prev_char_find_index,
+                                                 'line_ct': cr_count,
+                                                 'word_ct': word_count,
+                                                 'sent_ct': sentence_count,
+                                                 'page_ct': (page_num+1)})
 
                         """ setup the next run """
                         text_body = text_body[char_find_index + 1:]  # truncate the text body to exclude this run's found keyword
-        return file_keyword_search_results
 
 
     def count_paragraphs(self, docx_file):
@@ -312,31 +308,41 @@ class AndSearch:
 
 #handle storage for overall file results (Zayn Severance)
 class FileResult:
-    filename = ""
-    scoring  = 0
-    filetype = ""
-    matches  = []
-    def __init__(self, file_name, file_type, score): #modified 'type' to 'file_type' due to overshadow of python built-in kw 'type'
-        #this would basically be scored off
-        self.filename = file_name
-        self.filetype = file_type
-        self.scoring  = score
+    filename        = ""
+    score           = -1
+    filetype        = ""
 
-    def add_match(self, result):
-        self.matches.append(result)
+    # modified 'type' to 'file_type' due to overshadow of python built-in kw 'type'
+    def __init__(self, document, search_params, score = -1):
+        #this would basically be scored off
+        self.filename = document.fname
+        self.filetype = document.extn
+        self.score    = score
+        self.document = document
+        self.search_params = search_params
+        self.and_results = AndSearch(search_params.andQuery)
+
+    def perform_AndSearch(self):
+        self.and_results.perform_search(self.document)
+
+    def print_results(self):
+        if len(self.and_results.and_matches) > 0:
+            for match in self.and_results.and_matches:
+                print(match)
+        else:
+            print('no matches found')
 
 
 class Document:
-    paginated = False
-    file_results = FileResult
-    text = ''
     fpath = r''
     fname = ''
     extn = ''
-    paged_text = []
     original_extn = ''
+    paginated = False
+    paged_text = []
+    text = ''
 
-    def __init__(self, fpath=r''):
+    def __init__(self, search_params, fpath=r''):
         self.fpath = fpath
         self.fname = (self.fpath.split('\\')[-1])
         self.extn = self.fname.split('.')[-1]
@@ -344,6 +350,11 @@ class Document:
         #pdf files and epub files text should always be paginated
         if self.extn=='pdf' or self.extn=='epub':
             self.paginated=True
+        else:
+            self.paginated=False
+        self.file_results = FileResult(self, search_params)
+        self.paged_text = []
+        self.text = ''
 
     def check_file(self):
         return not(self.fname[0]=='~' or self.fname[0]=='$' or self.extn=='txt')
@@ -357,7 +368,6 @@ class Document:
 
     # uses textract to extract text
     def __extract_text__(self):
-        # text = textract.process(filename=self.fpath, text=textract.process(self.fpath, extension=self.extn))
         text = textract.process(filename=self.fpath, extension=self.extn)
         try:
             if self.extn != 'txt':
@@ -398,8 +408,12 @@ class Document:
         else:
             self.__extract_text__()
 
+    def perform_search(self):
+        self.file_results.perform_AndSearch()
 
-
+    def print_results(self):
+        print(self.fname)
+        self.file_results.print_results()
 
 
 """
