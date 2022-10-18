@@ -14,55 +14,17 @@ finally, run this cmd in your python console
        nltk.download('punkt')
 
 
--------------------------------
 NLTK Example Code:
 
-1 -------------------------------
     SENTENCE TOKENIZE:
 sentences = nltk.sent_tokenize(text)
 for sent in sentences:
     print(sent, '\n')
--------------------------------
+
 EXAMPLE CODE
 # words = nltk.word_tokenize()
 # sentences = nltk.sent_tokenize()
 -------------------------------
-
-pip install PyPDF2
-
--------------------------------
-
-
-
-
-
-
-
-
-old archived code:
-
-1 -------------------------------
-import pdfquery
-
-test_pdf_file = pdfquery.PDFQuery(pdf_files[-1])
-test_pdf_file.load()
-VERY SLOW
--------------------------------
-import PyPDF2
-
-EXAMPLE CODE
-
-pdfFileObj = open(pdf_files[-1], 'rb')  # create a file handler for reading in a pdf file object
-pdfReader = PyPDF2.PdfFileReader(pdfFileObj)  # Call/initialize the PyPDF2 library
-num_pages = len(pdfReader.pages)  # read # of pages from the pdf doc
-page_text = []
-
-for page in range(int(num_pages / 5)):  # use int to make sure it's a whole number value
-    page_text.append(pdfReader.getPage(page).extractText())  # append each page's text to a new index in page_text list
-# much faster than pdfquery
-
--------------------------------
-
 
 textract documentation
 https://textract.readthedocs.io/en/stable/python_package.html
@@ -125,13 +87,6 @@ def preprocess_text_remove_punc(text):
     return text
 
 
-# conditions text: lower-case, remove some misc. items
-def preprocess_text_keep_punc(text):
-    text = text.lower()  # Lowercase text
-    # text = re.sub(f"[{re.escape(punctuation)}]", "", text)  # Remove punctuation
-    # text = " ".join(text.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
-    return text
-
 # searches the walk_directory output for files of a particular file-type extension,
 # returns a list of the files ending in the passed 'extn' string
 #       e.g. find_file_ext(example_file_list, 'docx') returns all files
@@ -188,6 +143,32 @@ def count_paragraphs(docx_file):
     return len(docx_file.paragraphs)
 
 
+# counts carriage returns/line feeds/combos (crLF)
+def count_CRs(in_text):
+    # count the various styles of LineFeeds and Carriage Returns
+    cr_count = int(in_text.count('\n'))
+    crLF_count = int(in_text.count('\r\n'))
+    LF_count = int(in_text.count('\r'))
+    # if any CRLF combos are found, reduce the cr and LF individual counts by the same amount
+    # removes redundant counting
+    if crLF_count > 0:
+        cr_count -= crLF_count
+        LF_count -= crLF_count
+    # sum and send out
+    return cr_count + crLF_count + LF_count
+
+
+def count_words(in_text):
+    proc_text = preprocess_text_remove_punc(in_text)
+    return len(proc_text.split(' '))
+
+
+def count_sentences(text):
+    # sentences = nltk.sent_tokenize(text)
+    # return len(sentences)
+    return -1
+
+
 class AndSearch:
     iter_i = 0
     keywords = []
@@ -200,28 +181,6 @@ class AndSearch:
         self.Search_obj = Search_obj
         self.iter_i = 0
 
-    # counts carriage returns/line feeds/combos (crLF)
-    def count_CRs(self, in_text):
-        # count the various styles of LineFeeds and Carriage Returns
-        cr_count = int(in_text.count('\n'))
-        crLF_count = int(in_text.count('\r\n'))
-        LF_count = int(in_text.count('\r'))
-        # if any CRLF combos are found, reduce the cr and LF individual counts by the same amount
-        # removes redundant counting
-        if crLF_count > 0:
-            cr_count -= crLF_count
-            LF_count -= crLF_count
-        # sum and send out
-        return cr_count + crLF_count + LF_count
-
-    def count_words(self, in_text):
-        proc_text = preprocess_text_remove_punc(in_text)
-        return len(proc_text.split(' '))
-
-    def count_sentences(self, text):
-        # sentences = nltk.sent_tokenize(text)
-        # return len(sentences)
-        return -1
 
     def perform_search(self, document):
         if document.paginated:
@@ -233,7 +192,7 @@ class AndSearch:
     def perform_search_nopage(self, document):
         for keyword in self.keywords:  # do the following subroutine for each keyword in the list 'keywords'
             keyword = keyword.lower()
-            text_body = preprocess_text_keep_punc(document.text)
+            text_body = document.text.lower() # case-insensitive initial search:
             keyword_count = text_body.count(keyword)
             prev_CR_count = 0  # initialize the carriage return counter var
             prev_word_count = 0  # initialize the word count var
@@ -247,15 +206,15 @@ class AndSearch:
                     """ count CRs """
                     trunc_text = text_body[:char_find_index]
                     # count the number of carriage returns to keep track of line num.
-                    cr_count = self.count_CRs(trunc_text) + prev_CR_count
+                    cr_count = count_CRs(trunc_text) + prev_CR_count
                     prev_CR_count = cr_count  # keep track of previous CR counts to optimize next run CR counting operation
 
                     """ count words """
-                    word_count = prev_word_count + self.count_words(trunc_text)
+                    word_count = prev_word_count + count_words(trunc_text)
                     prev_word_count = word_count
 
                     """ count sentences """
-                    sentence_count = prev_sentence_count + self.count_sentences(trunc_text)
+                    sentence_count = prev_sentence_count + count_sentences(trunc_text)
                     prev_sentence_count = sentence_count
 
                     """ perform or/not search """
@@ -266,11 +225,7 @@ class AndSearch:
                                              'sent_ct'        : sentence_count,
                                              'page_ct'        : self.page_count}
                     temp_OrNotSearch_obj = OrNotSearch(self.Search_obj, temp_and_matches)
-                    print(self.iter_i)
-                    if (self.iter_i == 16):
-                        print('kaboom')
                     temp_OrNotSearch_obj.perform_search(document)
-                    self.iter_i +=1
                     temp_and_matches.update({'OrNotSearch_obj': temp_OrNotSearch_obj})
 
                     """ store results """
@@ -285,7 +240,7 @@ class AndSearch:
             page_num = i  # intuitive var name to hold page number for result storage
 
             for keyword in self.keywords:  # do the following subroutine for each keyword in the list 'keywords'
-                text_body = preprocess_text_keep_punc(document.paged_text[i])
+                text_body = document.paged_text[i].lower() # case insensitive initial search:
                 keyword = keyword.lower()
                 page_keyword_count = text_body.count(keyword)
                 prev_CR_count = 0  # initialize the carriage return counter var
@@ -300,15 +255,15 @@ class AndSearch:
                         """ count CRs """
                         trunc = text_body[:char_find_index]
                         # count the number of carriage returns to keep track of line num.
-                        cr_count = self.count_CRs(trunc) + prev_CR_count
+                        cr_count = count_CRs(trunc) + prev_CR_count
                         prev_CR_count = cr_count  # keep track of previous CR counts to optimize next run CR counting operation
 
                         """ count words """
-                        word_count = prev_word_count + self.count_words(trunc)
+                        word_count = prev_word_count + count_words(trunc)
                         prev_word_count = word_count
 
                         """ count sentences """
-                        sentence_count = prev_sentence_count + self.count_sentences(trunc)
+                        sentence_count = prev_sentence_count + count_sentences(trunc)
                         prev_sentence_count = sentence_count
 
                         """ store results """
@@ -614,6 +569,8 @@ class Document:
 """
 TODO SECTION
 I made this section to capture some of the other things we need to take care of in back-end
+
+THIS SECTION IS OUTDATED AS OF 10/17/2022
 """
 # TODO: integrate epub file-type handling (COMPLETE)
 # TODO: handle boolean search parameters (constrained to: and/or/not)
