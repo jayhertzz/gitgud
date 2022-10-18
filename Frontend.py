@@ -4,10 +4,10 @@
 # Yes, this is what you get when a backend guy makes a frontend.
 
 import sys
-import ctypes
+#import ctypes
 import Backend as BE
 myappid = 'gitgud.contxt.ver1.0' # arbitrary string
-ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+#ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
