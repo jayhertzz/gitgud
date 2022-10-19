@@ -1,6 +1,5 @@
 """
 -------------------------------
-NO LONGER USING NLTK in this project as of: 10/17/2022
 nltk install procedure:
 
 see: https://www.nltk.org/install.html
@@ -14,17 +13,55 @@ finally, run this cmd in your python console
        nltk.download('punkt')
 
 
+-------------------------------
 NLTK Example Code:
 
+1 -------------------------------
     SENTENCE TOKENIZE:
 sentences = nltk.sent_tokenize(text)
 for sent in sentences:
     print(sent, '\n')
-
+-------------------------------
 EXAMPLE CODE
 # words = nltk.word_tokenize()
 # sentences = nltk.sent_tokenize()
 -------------------------------
+
+pip install PyPDF2
+
+-------------------------------
+
+
+
+
+
+
+
+
+old archived code:
+
+1 -------------------------------
+import pdfquery
+
+test_pdf_file = pdfquery.PDFQuery(pdf_files[-1])
+test_pdf_file.load()
+VERY SLOW
+-------------------------------
+import PyPDF2
+
+EXAMPLE CODE
+
+pdfFileObj = open(pdf_files[-1], 'rb')  # create a file handler for reading in a pdf file object
+pdfReader = PyPDF2.PdfFileReader(pdfFileObj)  # Call/initialize the PyPDF2 library
+num_pages = len(pdfReader.pages)  # read # of pages from the pdf doc
+page_text = []
+
+for page in range(int(num_pages / 5)):  # use int to make sure it's a whole number value
+    page_text.append(pdfReader.getPage(page).extractText())  # append each page's text to a new index in page_text list
+# much faster than pdfquery
+
+-------------------------------
+
 
 textract documentation
 https://textract.readthedocs.io/en/stable/python_package.html
@@ -67,14 +104,14 @@ https://python-docx.readthedocs.io/en/latest/
 
 """
 
-# import nltk # disabled this because it was only being used in sentence tokenization
+import nltk
 import PyPDF2
 import os
 from string import punctuation
 import textract
 from docx2pdf import convert  # for converting docx to pdf, for page counting
 import re
-# import Frontend as FE
+import Frontend as FE
 
 """
 STATIC METHODS and OBJECTS
@@ -86,6 +123,13 @@ def preprocess_text_remove_punc(text):
     text = " ".join(text.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
     return text
 
+
+# conditions text: lower-case, remove some misc. items
+def preprocess_text_keep_punc(text):
+    text = text.lower()  # Lowercase text
+    # text = re.sub(f"[{re.escape(punctuation)}]", "", text)  # Remove punctuation
+    # text = " ".join(text.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
+    return text
 
 # searches the walk_directory output for files of a particular file-type extension,
 # returns a list of the files ending in the passed 'extn' string
@@ -143,34 +187,7 @@ def count_paragraphs(docx_file):
     return len(docx_file.paragraphs)
 
 
-# counts carriage returns/line feeds/combos (crLF)
-def count_CRs(in_text):
-    # count the various styles of LineFeeds and Carriage Returns
-    cr_count = int(in_text.count('\n'))
-    crLF_count = int(in_text.count('\r\n'))
-    LF_count = int(in_text.count('\r'))
-    # if any CRLF combos are found, reduce the cr and LF individual counts by the same amount
-    # removes redundant counting
-    if crLF_count > 0:
-        cr_count -= crLF_count
-        LF_count -= crLF_count
-    # sum and send out
-    return cr_count + crLF_count + LF_count
-
-
-def count_words(in_text):
-    proc_text = preprocess_text_remove_punc(in_text)
-    return len(proc_text.split(' '))
-
-
-def count_sentences(text):
-    # sentences = nltk.sent_tokenize(text)
-    # return len(sentences)
-    return -1
-
-
 class AndSearch:
-    iter_i = 0
     keywords = []
     and_matches = []
     page_count = -1
@@ -179,8 +196,28 @@ class AndSearch:
         self.keywords = Search_obj.andQuery
         self.and_matches = []
         self.Search_obj = Search_obj
-        self.iter_i = 0
 
+    # counts carriage returns/line feeds/combos (crLF)
+    def count_CRs(self, in_text):
+        # count the various styles of LineFeeds and Carriage Returns
+        cr_count = int(in_text.count('\n'))
+        crLF_count = int(in_text.count('\r\n'))
+        LF_count = int(in_text.count('\r'))
+        # if any CRLF combos are found, reduce the cr and LF individual counts by the same amount
+        # removes redundant counting
+        if crLF_count > 0:
+            cr_count -= crLF_count
+            LF_count -= crLF_count
+        # sum and send out
+        return cr_count + crLF_count + LF_count
+
+    def count_words(self, in_text):
+        proc_text = preprocess_text_remove_punc(in_text)
+        return len(proc_text.split(' '))
+
+    def count_sentences(self, text):
+        sentences = nltk.sent_tokenize(text)
+        return len(sentences)
 
     def perform_search(self, document):
         if document.paginated:
@@ -192,7 +229,7 @@ class AndSearch:
     def perform_search_nopage(self, document):
         for keyword in self.keywords:  # do the following subroutine for each keyword in the list 'keywords'
             keyword = keyword.lower()
-            text_body = document.text.lower() # case-insensitive initial search:
+            text_body = preprocess_text_keep_punc(document.text)
             keyword_count = text_body.count(keyword)
             prev_CR_count = 0  # initialize the carriage return counter var
             prev_word_count = 0  # initialize the word count var
@@ -206,15 +243,15 @@ class AndSearch:
                     """ count CRs """
                     trunc_text = text_body[:char_find_index]
                     # count the number of carriage returns to keep track of line num.
-                    cr_count = count_CRs(trunc_text) + prev_CR_count
+                    cr_count = self.count_CRs(trunc_text) + prev_CR_count
                     prev_CR_count = cr_count  # keep track of previous CR counts to optimize next run CR counting operation
 
                     """ count words """
-                    word_count = prev_word_count + count_words(trunc_text)
+                    word_count = prev_word_count + self.count_words(trunc_text)
                     prev_word_count = word_count
 
                     """ count sentences """
-                    sentence_count = prev_sentence_count + count_sentences(trunc_text)
+                    sentence_count = prev_sentence_count + self.count_sentences(trunc_text)
                     prev_sentence_count = sentence_count
 
                     """ perform or/not search """
@@ -240,7 +277,7 @@ class AndSearch:
             page_num = i  # intuitive var name to hold page number for result storage
 
             for keyword in self.keywords:  # do the following subroutine for each keyword in the list 'keywords'
-                text_body = document.paged_text[i].lower() # case insensitive initial search:
+                text_body = preprocess_text_keep_punc(document.paged_text[i])
                 keyword = keyword.lower()
                 page_keyword_count = text_body.count(keyword)
                 prev_CR_count = 0  # initialize the carriage return counter var
@@ -255,15 +292,15 @@ class AndSearch:
                         """ count CRs """
                         trunc = text_body[:char_find_index]
                         # count the number of carriage returns to keep track of line num.
-                        cr_count = count_CRs(trunc) + prev_CR_count
+                        cr_count = self.count_CRs(trunc) + prev_CR_count
                         prev_CR_count = cr_count  # keep track of previous CR counts to optimize next run CR counting operation
 
                         """ count words """
-                        word_count = prev_word_count + count_words(trunc)
+                        word_count = prev_word_count + self.count_words(trunc)
                         prev_word_count = word_count
 
                         """ count sentences """
-                        sentence_count = prev_sentence_count + count_sentences(trunc)
+                        sentence_count = prev_sentence_count + self.count_sentences(trunc)
                         prev_sentence_count = sentence_count
 
                         """ store results """
@@ -338,56 +375,47 @@ class OrNotSearch:
 
     def perform_search_nopage(self, document):
         # for and_match in document.file_results.AndSrch_obj.and_matches:
-        front_flag = False
-        back_flag = False
         and_idx = self.temp_and_matches['char_ct']
         custom_punctuation = r"""!"#$%&'*+,-./:;<=>\^`|~"""
 
         self.text_slice_front = document.text[(and_idx-self.char_pad):and_idx]
-        if len(self.text_slice_front) < self.char_pad:
-            front_flag = True
         text_slice_front_repl=self.text_slice_front
         for x in list(custom_punctuation):
             text_slice_front_repl = text_slice_front_repl.replace(x,' ')
         text_slice_front_repl = text_slice_front_repl.replace('  ', ' ')
 
-        preprocessed_text = " ".join(text_slice_front_repl.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
+        token_text = re.sub(f"[{re.escape(custom_punctuation)}]", "", text_slice_front_repl)  # Remove punctuation
+        preprocessed_text = " ".join(token_text.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
+        # words_front = nltk.word_tokenize(preprocessed_text)
         words_front = preprocessed_text.split(' ')
 
         self.text_slice_back = document.text[and_idx:(and_idx+self.char_pad)]
-        if len(self.text_slice_back) < len(document.text)-self.char_pad:
-            back_flag = True
         text_slice_back_repl=self.text_slice_back
         for x in list(custom_punctuation):
             text_slice_back_repl = text_slice_back_repl.replace(x,' ')
         text_slice_back_repl = text_slice_back_repl.replace('  ', ' ')
 
-        preprocessed_text = " ".join(text_slice_back_repl.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
+        token_text = re.sub(f"[{re.escape(custom_punctuation)}]", "", text_slice_back_repl)  # Remove punctuation
+        preprocessed_text = " ".join(token_text.split())  # Remove extra spaces, tabs, and new lines (retains parenthesis)
+        # words_back = nltk.word_tokenize(preprocessed_text)
         words_back = preprocessed_text.split(' ')
 
-        if ((len(words_front) < self.max_pad_factor) and not front_flag) or (
-            (len(words_back) < self.max_pad_factor) and not back_flag):
-            self.max_pad_factor += (self.max_pad_factor-len(words_front))+10
+        if (len(words_front) < self.max_pad_factor) or (len(words_back) < self.max_pad_factor):
+            self.max_pad_factor += (self.max_pad_factor-len(words_front))
             self.char_pad = self.max_pad_factor * self.idx_factor
             self.perform_search_nopage(document)
 
-        elif not front_flag:
+        else:
             word_front = words_front[-self.max_pad_factor+2]
             j=1
-            # if word_front is nothing but special chars, find the word immediately preceding it and check again
-            #       for a valid word
             while len(re.findall(f"[^A-Za-z0-9]", word_front)) > 0:
                 word_front = words_front[-self.max_pad_factor + 2 - j]
                 j+=1
-            # the standalone str.find method from nltk word tokenizing the original string is ineffective.
-            #       It ends up pulling partial finds. However, this compliment regex pattern fills the gap
+            # TODO: the standalone str.find method from nltk word tokenizing the original string is ineffective.
+            #  It ends up pulling partial finds. However, this compliment regex pattern fills the gap
             regex_return = re.findall(f"[^A-Za-z0-9]{word_front}[^A-Za-z0-9]", self.text_slice_front)[0]
             self.text_slice_front = self.text_slice_front[self.text_slice_front.find(regex_return):].strip()
 
-        elif front_flag:
-            self.text_slice_front = self.text_slice_front.strip()
-
-        elif not back_flag:
             word_back = words_back[self.max_pad_factor-2]
             j=1
             while len(re.findall(f"[^A-Za-z0-9]", word_back)) > 0:
@@ -397,45 +425,39 @@ class OrNotSearch:
             back_idx = len(self.text_slice_back)-(self.text_slice_back[::-1].find(regex_return[::-1]))
             self.text_slice_back = self.text_slice_back[:back_idx].strip()
 
-        elif back_flag:
-            self.text_slice_back = self.text_slice_back.strip()
+            self.text_slice_whole = self.text_slice_front+' '+self.text_slice_back
 
-        else:
-            print('front_flag, back_flag nonsense')
+            self.or_matches_count = 0
+            self.not_matches_count = 0
+            if self.or_rad > self.not_rad:
+                for or_kw in self.or_keywords:
+                    or_match_ct = len(self.text_slice_whole.split(or_kw))-1
+                    self.or_matches_count += or_match_ct
+                    self.or_matches_words.update({or_kw:or_match_ct})
+                for not_kw in self.not_keywords:
+                    not_match_ct = len(self.text_slice_whole_not_subset.split(not_kw))-1
+                    self.not_matches_count += not_match_ct
+                    self.not_matches_words.update({not_kw:not_match_ct})
 
-        self.text_slice_whole = (self.text_slice_front+' '+self.text_slice_back).strip()
+            elif self.or_rad < self.not_rad:
+                for not_kw in self.not_keywords:
+                    not_match_ct = len(self.text_slice_whole.split(not_kw))-1
+                    self.not_matches_count += not_match_ct
+                    self.not_matches_words.update({not_kw:not_match_ct})
+                for or_kw in self.or_keywords:
+                    or_match_ct = len(self.text_slice_whole_or_subset.split(or_kw)) - 1
+                    self.or_matches_count += or_match_ct
+                    self.or_matches_words.update({or_kw: or_match_ct})
 
-        self.or_matches_count = 0
-        self.not_matches_count = 0
-        if self.or_rad > self.not_rad:
-            for or_kw in self.or_keywords:
-                or_match_ct = len(self.text_slice_whole.split(or_kw))-1
-                self.or_matches_count += or_match_ct
-                self.or_matches_words.update({or_kw:or_match_ct})
-            for not_kw in self.not_keywords:
-                not_match_ct = len(self.text_slice_whole_not_subset.split(not_kw))-1
-                self.not_matches_count += not_match_ct
-                self.not_matches_words.update({not_kw:not_match_ct})
-
-        elif self.or_rad < self.not_rad:
-            for not_kw in self.not_keywords:
-                not_match_ct = len(self.text_slice_whole.split(not_kw))-1
-                self.not_matches_count += not_match_ct
-                self.not_matches_words.update({not_kw:not_match_ct})
-            for or_kw in self.or_keywords:
-                or_match_ct = len(self.text_slice_whole_or_subset.split(or_kw)) - 1
-                self.or_matches_count += or_match_ct
-                self.or_matches_words.update({or_kw: or_match_ct})
-
-        else:
-            for not_kw in self.not_keywords:
-                not_match_ct = len(self.text_slice_whole.split(not_kw))-1
-                self.not_matches_count += not_match_ct
-                self.not_matches_words.update({not_kw:not_match_ct})
-            for or_kw in self.or_keywords:
-                or_match_ct = len(self.text_slice_whole.split(or_kw)) - 1
-                self.or_matches_count += or_match_ct
-                self.or_matches_words.update({or_kw: or_match_ct})
+            else:
+                for not_kw in self.not_keywords:
+                    not_match_ct = len(self.text_slice_whole.split(not_kw))-1
+                    self.not_matches_count += not_match_ct
+                    self.not_matches_words.update({not_kw:not_match_ct})
+                for or_kw in self.or_keywords:
+                    or_match_ct = len(self.text_slice_whole.split(or_kw)) - 1
+                    self.or_matches_count += or_match_ct
+                    self.or_matches_words.update({or_kw: or_match_ct})
 
     def perform_search_with_page(self, document):
         pass
@@ -569,8 +591,6 @@ class Document:
 """
 TODO SECTION
 I made this section to capture some of the other things we need to take care of in back-end
-
-THIS SECTION IS OUTDATED AS OF 10/17/2022
 """
 # TODO: integrate epub file-type handling (COMPLETE)
 # TODO: handle boolean search parameters (constrained to: and/or/not)
