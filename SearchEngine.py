@@ -190,11 +190,14 @@ class SearchEngine:
                 index = top_row.name
                 doc_obj = top_row.Document_object
 
-                score = doc_obj.get_nextOrNot(
-                    top_row.page_number,
-                    top_row.AND_char_idx,
-                    self.search_parameters,
-                )
+                if top_row.page_number < 0:
+                    score = 0
+                else:
+                    score = doc_obj.get_nextOrNot(
+                        top_row.page_number,
+                        top_row.AND_char_idx,
+                        self.search_parameters,
+                    )
 
                 self.results_df['search_score'][index] = score
                 self.results_df.sort_values('search_score', inplace=True, ascending=False)
