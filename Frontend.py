@@ -9,7 +9,8 @@ import Backend as BE
 myappid = 'gitgud.contxt.ver1.0' # arbitrary string
 #ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 from PyQt5 import QtCore, QtGui, QtWidgets
-
+from PyQt5.QtWidgets import QComboBox, QMainWindow, QLabel, QApplication, QWidget, QVBoxLayout
+from PyQt5.QtGui import QIcon
 
 class Ui_MainWindow(QtWidgets.QMainWindow):
     ANDS = ""
@@ -25,6 +26,49 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.setObjectName("contxt")
         self.resize(800, 600)
         self.centralwidget = QtWidgets.QWidget(self)
+        #buttons for proximity on the OR line (SH):
+
+        combobox1 = QComboBox(self)
+        combobox1.addItem('by-word')
+        combobox1.addItem('by-page')
+        combobox1.addItem('by-document')
+        combobox1.move(350, 210)
+        self.qlabel = QLabel(self)
+        combobox1.activated[str].connect(self.onChanged)
+
+        combobox2 = QComboBox(self)
+        combobox2.addItem('by-word')
+        combobox2.addItem('by-page')
+        combobox2.addItem('by-document')
+        combobox2.move(350, 260)
+        self.q2label = QLabel(self)
+        combobox2.activated[str].connect(self.onChanged2)
+
+        #done with SH
+        self.label = QtWidgets.QLabel(self.centralwidget)# setting the AND label before the first text box - SH
+        self.label.setGeometry(QtCore.QRect(50, 123, 801, 91))
+        font = QtGui.QFont()
+        font.setFamily("Times New Roman")
+        font.setPointSize(20)
+        self.label.setFont(font)
+        self.label.setObjectName("label")
+        self.label.setText("AND:")
+        self.label = QtWidgets.QLabel(self.centralwidget)# setting the OR label before the first text box - SH
+        self.label.setGeometry(QtCore.QRect(50, 173, 801, 91))
+        font = QtGui.QFont()
+        font.setFamily("Times New Roman")
+        font.setPointSize(20)
+        self.label.setFont(font)
+        self.label.setObjectName("label")
+        self.label.setText("OR:")
+        self.label = QtWidgets.QLabel(self.centralwidget) # setting the NOT label before the first text box - SH
+        self.label.setGeometry(QtCore.QRect(50, 224, 801, 91))
+        font = QtGui.QFont()
+        font.setFamily("Times New Roman")
+        font.setPointSize(20)
+        self.label.setFont(font)
+        self.label.setObjectName("label")
+        self.label.setText("NOT:")
         self.centralwidget.setObjectName("centralwidget")
         self.lineEdit = QtWidgets.QLineEdit(self.centralwidget)
         self.lineEdit.setGeometry(QtCore.QRect(130, 160, 131, 22))
@@ -69,7 +113,13 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.pushButton.clicked.connect(self.button_clicked)
         self._window2 = window2
 
+    #prox buttons - SH
+    def onChanged(self, text):
+        self.qlabel.adjustSize()
 
+    def onChanged2(self, text):
+        self.q2label.adjustSize()
+    
     # button handle
     def button_clicked(self):
         print("click")
