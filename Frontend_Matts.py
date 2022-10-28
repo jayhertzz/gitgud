@@ -87,11 +87,6 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         num3 = int(self.spinBox_3.text())
         print("query:", ANDS, "range", num1, ORS, "range", num2, NOTS, "range", num3)
         self.hide()
-        if self._window2 is None:
-            self._window2 = Ui_Results(self)
-        # I would expect your function for grabbing data to be somewhere around here
-        self._window2.setText()
-        self._window2.show()
 
         # TODO: hard-coded user inputs; obv change once fully integrated with UI
         dir_path = r'D:\applications\PyCharm Projects\gitgud_01\test_documents_01'
@@ -118,21 +113,27 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         while not EOS_flag:
             print('{}th run into search_next():'.format(k))
             results_df, EOS_flag = SearchObj.search_next()
-            self._window2.populateTable(results_df)
             k += 1
-            if k==10:
+            if k==1:
+                # if self._window2 is None:
+                self._window2 = Ui_Results(self, results_df)
+                # I would expect your function for grabbing data to be somewhere around here
+                self._window2.setText()
+                self._window2.show()
                 print('df size is: {}'.format(len(results_df)))
-
+            else:
+                self._window2.populateTable(results_df)
 
 
 class Ui_Results(QtWidgets.QMainWindow):
-    def __init__(self, window1=None):
+    def __init__(self, window1=None, results_df=None):
         super(Ui_Results, self).__init__()
 
         self.data = pd.DataFrame()
-        self.df_colNames_resultsWindow = ['fpath', 'fname', 'AND_keyword', 'doc_AND_score', 'page_number',
-                                     'text_short', 'text_long', 'search_score']
-        self.debug_row_count = 10
+        self.df_colNames_resultsWindow = ['fpath',      'fname',      'AND_keyword',  'doc_AND_score',   'page_number',
+                                       'text_short', 'text_long',  'search_score', 'Document_object', 'AND_char_idx']
+        self.debug_row_count = results_df.shape[0]
+
         gridLayout = QtWidgets.QGridLayout()
 
         self.setWindowIcon(QtGui.QIcon('Icon.png'))
@@ -174,6 +175,7 @@ class Ui_Results(QtWidgets.QMainWindow):
         self.pushButton.clicked.connect(self.button_clicked)
         self._window1 = window1
         print("Made window 2")
+        self.populateTable(results_df)
 
         # self.populateTable(pd.DataFrame())
 
@@ -189,14 +191,14 @@ class Ui_Results(QtWidgets.QMainWindow):
     def populateTable(self, results_df):
         # grab data from the backend to populate this table
         # use the table population function to fill it in
-        self.tableWidget.setRowCount(self.debug_row_count)
-        self.tableWidget.setColumnCount(len(self.df_colNames_resultsWindow))
-        # print(results_df[:20])
+        self.tableWidget.setRowCount(results_df.shape[0]) # shape[0] is df rows
+        self.tableWidget.setColumnCount(results_df.shape[1]) # shape[1] is df columns
+        self.tableWidget.setHorizontalHeaderLabels(self.df_colNames_resultsWindow)
 
-        # for row in range(self.debug_row_count):
-        #     for col in range(len(self.df_colNames_resultsWindow)):
-        #         self.tableWidget.setItem(row,col,
-        #                                  QtWidgets.QTableWidgetItem(results_df.iloc[row,col]))
+        for row in range(self.debug_row_count):
+            for col in range(len(self.df_colNames_resultsWindow)):
+                item = results_df.iloc[row,col]
+                self.tableWidget.setItem(row,col,QtWidgets.QTableWidgetItem(str(item)))
 
     # This class updates the search text label
     def setText(self):
