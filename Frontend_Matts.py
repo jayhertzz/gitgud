@@ -5,6 +5,7 @@
 
 import sys
 from os.path import expanduser
+from os.path import isdir
 
 # import ctypes
 # import Backend as BE
@@ -201,15 +202,16 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.hide()
 
         # TODO: hard-coded user inputs; obv change once fully integrated with UI
-        dir_path = self.directory_path
+        dir_path = str(self.directory_path)
+        print(dir_path)
         type_dictionary = {
             "Word" : "byWORD",
             "Page" : "byPAGE",
             "Document" : "byDOC"
         }
-
-        OR_type = type_dictionary[self.or_type]
-        NOT_type = type_dictionary[self.not_type]
+        print(type_dictionary[str(self.or_type.currentText())])
+        OR_type = type_dictionary[str(self.or_type.currentText())]
+        NOT_type = type_dictionary[str(self.not_type.currentText())]
         case_sens = False
 
         search_params = {
