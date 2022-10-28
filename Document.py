@@ -1,5 +1,6 @@
 import copy
 
+import pdfplumber
 import textract
 import PyPDF2
 import _Utils
@@ -46,17 +47,27 @@ class Document:
 
 
     def process_doc_for_text(self):
+        # if self.extn == 'pdf':
+        #     self.paginated = True
+        #     pdfFileObj = open(self.fpath, 'rb')  # create a file handler for reading in a pdf file object
+        #     pdfReader = PyPDF2.PdfFileReader(pdfFileObj)  # Call/initialize the PyPDF2 library
+        #     num_pages = len(pdfReader.pages)  # read # of pages from the pdf doc
+        #     page_text = []
+        #     for page in range(int(num_pages)):  # use int to make sure it's a whole number value
+        #         page_text.append(
+        #             pdfReader.pages[page].extract_text())  # append each page's text to a new index in page_text list
+        #     # print('completed extracting pages from: {}'.format(self.fname))
+        #     self.paged_text = page_text
+
         if self.extn == 'pdf':
             self.paginated = True
-            pdfFileObj = open(self.fpath, 'rb')  # create a file handler for reading in a pdf file object
-            pdfReader = PyPDF2.PdfFileReader(pdfFileObj)  # Call/initialize the PyPDF2 library
-            num_pages = len(pdfReader.pages)  # read # of pages from the pdf doc
-            page_text = []
-            for page in range(int(num_pages)):  # use int to make sure it's a whole number value
-                page_text.append(
-                    pdfReader.pages[page].extract_text())  # append each page's text to a new index in page_text list
-            # print('completed extracting pages from: {}'.format(self.fname))
-            self.paged_text = page_text
+            with pdfplumber.open(self.fpath) as pdf:  # create a file handler for reading in a pdf file object
+                page_text = []
+                for page in pdf.pages:  # use int to make sure it's a whole number value
+                    page_text.append(page.extract_text())  # append each page's text to a new index in page_text list
+
+                pdf.close()
+                self.paged_text = page_text
 
         # elif self.extn == 'docx':
         #     self.paginated = True

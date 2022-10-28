@@ -27,7 +27,7 @@ pd.set_option("display.max_columns", None)
 The below code is from Github user DataSolveProblems: Display Pandas DataFrame
 '''
 
-
+'''
 class DataFrameModel(QtCore.QAbstractTableModel):
     DtypeRole = QtCore.Qt.UserRole + 1000
     ValueRole = QtCore.Qt.UserRole + 1001
@@ -88,7 +88,7 @@ class DataFrameModel(QtCore.QAbstractTableModel):
             DataFrameModel.ValueRole: b'value'
         }
         return roles
-
+'''
 
 class Ui_MainWindow(QtWidgets.QMainWindow):
     ANDS = ""
@@ -199,11 +199,6 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
         print("query:", ANDS, "range", num1, ORS, "range", num2, NOTS, "range", num3)
         self.hide()
-        if self._window2 is None:
-            self._window2 = Ui_Results(self)
-        # I would expect your function for grabbing data to be somewhere around here
-        self._window2.setText()
-        self._window2.show()
 
         # TODO: hard-coded user inputs; obv change once fully integrated with UI
         dir_path = self.directory_path
@@ -236,14 +231,14 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         while not EOS_flag:
             print('{}th run into search_next():'.format(k))
             results_df, EOS_flag = SearchObj.search_next()
-            self._window2.populateTable(results_df)
             k += 1
             if k == 10:
                 print('df size is: {}'.format(len(results_df)))
-
+            else:
+                self._window2.populateTable(results_df)
 
 class Ui_Results(QtWidgets.QMainWindow):
-    def __init__(self, window1=None):
+    def __init__(self, window1=None, results_df=None):
         super(Ui_Results, self).__init__()
 
         self.data = pd.DataFrame()
@@ -291,6 +286,7 @@ class Ui_Results(QtWidgets.QMainWindow):
         self.pushButton.clicked.connect(self.button_clicked)
         self._window1 = window1
         print("Made window 2")
+        self.populateTable(results_df)
 
         # self.populateTable(pd.DataFrame())
 
@@ -312,10 +308,10 @@ class Ui_Results(QtWidgets.QMainWindow):
 
         # print(results_df[:20])
 
-        # for row in range(self.debug_row_count):
-        #     for col in range(len(self.df_colNames_resultsWindow)):
-        #         self.tableWidget.setItem(row,col,
-        #                                  QtWidgets.QTableWidgetItem(results_df.iloc[row,col]))
+        for row in range(self.debug_row_count):
+            for col in range(len(self.df_colNames_resultsWindow)):
+                item = results_df.iloc[row,col]
+                self.tableWidget.setItem(row,col,QtWidgets.QTableWidgetItem(str(item)))
 
     # This class updates the search text label
     def setText(self):
