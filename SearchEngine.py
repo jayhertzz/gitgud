@@ -189,12 +189,13 @@ class SearchEngine:
                 top_row = filtered_df.iloc[0]
                 index = top_row.name
                 doc_obj = top_row.Document_object
+                page_num = top_row.page_number-1
 
-                if top_row.page_number < 0:
+                if page_num < 0:
                     score = 0
                 else:
                     score = doc_obj.get_nextOrNot(
-                        top_row.page_number,
+                        page_num,
                         top_row.AND_char_idx,
                         self.search_parameters,
                     )
@@ -232,6 +233,9 @@ class SearchEngine:
                                     self.df_column_names[2]: AND_kw,        # 'AND_keyword'
                                     self.df_column_names[3]: doc_AND_score, # 'doc_AND_score'
                                     self.df_column_names[4]: -1,            # 'page_number'
+                                    self.df_column_names[5]: '',            # 'text_short'
+                                    self.df_column_names[6]: '',            # 'text_long'
+                                    # self.df_column_names[7]: -1,            # 'search_score'
                                     self.df_column_names[8]: doc_obj,       # 'Document_object'
                                     self.df_column_names[9]: -1,            # 'AND_char_idx'
                                 }, index=[0]
@@ -251,6 +255,9 @@ class SearchEngine:
                                     self.df_column_names[2]: res['AND_keyword'],    # 'AND_keyword'
                                     self.df_column_names[3]: doc_AND_score,         # 'doc_AND_score'
                                     self.df_column_names[4]: res['page_number'],    # 'page_number'
+                                    self.df_column_names[5]: res['text_short'],     # 'text_short'
+                                    self.df_column_names[6]: '',                    # 'text_long'
+                                    # self.df_column_names[7]: -1,                    # 'search_score'
                                     self.df_column_names[8]: doc_obj,               # 'Document_object'
                                     self.df_column_names[9]: res['AND_char_idx'],   # 'AND_char_idx'
                                 }, index=[0]
@@ -331,7 +338,7 @@ class SearchEngine:
                             'Document_object'   : doc_obj,
                             'AND_char_idx'      : char_find_index
                             
-        we simply add up all of the dictionary's 
+        we simply add up all of the dictionary's entries to calculate the total doc score
 
 
     1. Call df.fpath.unique() to get a list of all documents,

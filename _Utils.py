@@ -50,7 +50,7 @@ def get_word_text_slice(document, page_num, and_idx, radius):
     words_front = words_back = []
     text_slice_front = text_slice_back = ''
     char_multiplier = 10
-    page_num -= 1 # comes in indexed from 1 instead of 0
+    # page_num -= 1 # comes in indexed from 1 instead of 0
 
     if document.paginated:
         text = copy.deepcopy(document.paged_text[page_num])
@@ -66,7 +66,7 @@ def get_word_text_slice(document, page_num, and_idx, radius):
         # 2a. ==== FIND FRONT WORD ====
 
         # Start with finding the front word using the estimation index value (char_pad)
-        text_slice_front = text[(and_idx - char_pad):and_idx]
+        text_slice_front = text[max(0,(and_idx - char_pad)):and_idx]
         # if the length of the sliced string we end up with is less than char_pad, we know we ran into a text edge (front or back)
         if len(text_slice_front) < char_pad:
             # handle this exception for paginated files
@@ -77,15 +77,15 @@ def get_word_text_slice(document, page_num, and_idx, radius):
                 page_tracker = 1
                 char_counter = len(text_slice_front)
                 if page_num > 0:
-                    char_counter += len(document.paged_text[page_num-page_tracker])
-                while (char_counter < char_pad) or not front_of_doc_flag:
+                    char_counter += len(document.paged_text[page_num - page_tracker])
+                while (char_counter < char_pad) and not front_of_doc_flag:
                     page_tracker += 1
                     if (page_num - page_tracker) >= 0:
                         char_counter += len(document.paged_text[page_num - page_tracker])
                     else:
                         front_of_doc_flag = True
 
-                text = ' '.join(document.paged_text[page_tracker:(page_num+1)])
+                text_slice_front = ' '.join(document.paged_text[page_tracker:(page_num+1)])
 
         # 'text_slice_front_repl' is a temporary variable copy of the front text slice
         #   we use text_slice_front_repl during parsing instead of self.__text_slice_front__ because we dont want to
@@ -113,7 +113,7 @@ def get_word_text_slice(document, page_num, and_idx, radius):
         # Start with finding the back word using the estimation index value (char_pad)
         text_slice_back = text[and_idx:(and_idx + char_pad)]
         # if the length of the sliced string we end up with is less than char_pad, we know we ran into a text edge (front or back)
-        if len(text_slice_back) < len(text) - char_pad:
+        if len(text_slice_back) < char_pad:
             if not document.paginated or page_num == len(document.paged_text):
                 back_of_doc_flag = True
             else:
@@ -121,8 +121,8 @@ def get_word_text_slice(document, page_num, and_idx, radius):
                 page_tracker = 1
                 char_counter = len(text_slice_back)
                 if page_num < last_page:
-                    char_counter += len(document.paged_text[page_num+page_tracker])
-                while (char_counter < char_pad) or not back_of_doc_flag:
+                    char_counter += len(document.paged_text[page_num + page_tracker])
+                while (char_counter < char_pad) and not back_of_doc_flag:
                     page_tracker += 1
                     if (page_num + page_tracker) <= last_page:
                         char_counter += len(document.paged_text[page_num + page_tracker])
@@ -130,7 +130,7 @@ def get_word_text_slice(document, page_num, and_idx, radius):
                         page_tracker -= 1
                         back_of_doc_flag = True
 
-                text = ' '.join(document.paged_text[page_num:(page_num + page_tracker)])
+                text_slice_back = ' '.join(document.paged_text[page_num:(page_num + page_tracker + 1)])
 
         # 'text_slice_back_repl' is a temporary variable copy of the front text slice
         #   we use text_slice_back_repl during parsing instead of self.__text_slice_back__ because we dont want to
@@ -223,10 +223,16 @@ def get_word_text_slice(document, page_num, and_idx, radius):
 
     text_slice_whole = (text_slice_front + ' ' + text_slice_back).strip()
 
-    return text_slice_whole
+    # if len(text_slice_whole) < 30:
+    #     text_short = text_slice_whole
+    # else:
+    #     text_short = text_slice_whole[
+    #         max(0, len(text_slice_front)-15) : min(len(text_slice_whole), len(text_slice_front)+15)]
+
+    return text_slice_whole#, text_short
 
 
-def get_page_text_slice(document, and_page_num, radius):
+def get_page_text_slice(document, and_page_num, radius):#, and_idx):
     # handle for paginated files:
     if document.paginated:
         front_page = and_page_num - radius
@@ -238,13 +244,47 @@ def get_page_text_slice(document, and_page_num, radius):
         if back_page > last_page:
             back_page = last_page
 
-        text = copy.deepcopy(document.paged_text[front_page:back_page])
+        text = copy.deepcopy(document.paged_text[front_page:back_page+1])
+
+        # if len(text) < 30:
+        #     text_short = text
+        # else:
+        #     text_short = document.paged_text[and_page_num] \
+        #     [
+        #         max(0, len(document.paged_text[and_page_num][:and_idx])-15)
+        #         :
+        #         min(len(document.paged_text[and_page_num]), len(document.paged_text[and_page_num][:and_idx])+15)
+        #     ]
+
 
     # non-paginated files:
     else:
         text = copy.deepcopy(document.text)
 
-    return copy.deepcopy(text)
+        # if len(text) < 30:
+        #     text_short = text
+        # else:
+        #     text_short = text[
+        #         max(0, len(text[:and_idx])-15) : min(len(text), len(text[:and_idx])+15)]
+
+    return copy.deepcopy(text)#, text_short
+
+
+# def short_text_page(document, and_page_num, and_idx):
+#     if document.paginated:
+#         text_short = document.paged_text[and_page_num] \
+#                  [
+#                      max(0, len(document.paged_text[and_page_num][:and_idx]) - 15)
+#                      :
+#                      min(len(document.paged_text[and_page_num]), len(document.paged_text[and_page_num][:and_idx]) + 15)
+#                  ]
+#     else:
+#         text_short = document.text[
+#                      max(0, len(document.text[:and_idx]) - 15)
+#                      :
+#                      min(len(document.text), len(document.text[:and_idx]) + 15)]
+#
+#     return text_short
 
 
 def get_text_slice(document, and_page_num, and_idx, search_parameters, type_srch):
@@ -264,6 +304,7 @@ def get_text_slice(document, and_page_num, and_idx, search_parameters, type_srch
                     }
     """
     text = ''
+    # text_short = ''
     orRad = copy.deepcopy(search_parameters['rad2'])
     notRad = copy.deepcopy(search_parameters['rad3'])
 
@@ -273,28 +314,30 @@ def get_text_slice(document, and_page_num, and_idx, search_parameters, type_srch
             text = get_word_text_slice(document, and_page_num, and_idx, orRad)
 
         elif search_parameters['OR_srch_type']  == type_enum[1]: # byPAGE
-            text = get_page_text_slice(document, and_page_num, orRad)
+            text = get_page_text_slice(document, and_page_num, orRad)#, and_idx)
 
         elif search_parameters['OR_srch_type']  == type_enum[2]: # byDOC
             if document.paginated:
                 text = ' '.join(copy.deepcopy(document.paged_text))
             else:
                 text = copy.deepcopy(document.text)
+            # text_short = short_text_page(document, and_page_num, and_idx)
 
     else:
         if search_parameters['NOT_srch_type']   == type_enum[0]: # byWORD
             text = get_word_text_slice(document, and_page_num, and_idx, notRad)
 
         elif search_parameters['NOT_srch_type'] == type_enum[1]: # byPAGE
-            text = get_page_text_slice(document, and_page_num, notRad)
+            text = get_page_text_slice(document, and_page_num, orRad)#, and_idx)
 
         elif search_parameters['NOT_srch_type'] == type_enum[2]: # byDOC
             if document.paginated:
                 text = ' '.join(copy.deepcopy(document.paged_text))
             else:
                 text = copy.deepcopy(document.text)
+            # text_short = short_text_page(document, and_page_num, and_idx)
 
-    return copy.deepcopy(text)
+    return copy.deepcopy(text)#, text_short
 
 
 def find_matches(text, kws):

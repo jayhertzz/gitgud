@@ -103,6 +103,7 @@ class Document:
         'AND_char_idx'
         )
         """
+        text_short_buffer = 100
         result = []
 
         # triple check for first_run indicators
@@ -146,6 +147,14 @@ class Document:
                     prev_char_find_index = char_find_index + prev_char_find_index
                     if char_find_index > -1:  # only make a record if a match is found (char_find_index == -1 means no match)
 
+                        text_short = self.paged_text[i] \
+                        [
+                            max(0, len(self.paged_text[i][:prev_char_find_index])-text_short_buffer)
+                            :
+                            min(len(self.paged_text[i]), len(self.paged_text[i][:prev_char_find_index])+text_short_buffer+1+len(AND_kw))
+                        ]
+
+
                         """ store results """
                         result.append(
                             {
@@ -153,7 +162,8 @@ class Document:
                                 'fname'             : self.fname,
                                 'AND_keyword'       : AND_kw,
                                 'page_number'       : page_num,
-                                'AND_char_idx'      : char_find_index
+                                'AND_char_idx'      : prev_char_find_index,
+                                'text_short'        : text_short
                             }
                         )
 
@@ -182,7 +192,7 @@ class Document:
         :param and_page_num:
         :param and_idx:
         :param search_parameters:
-        :return:
+        :return: int score
         """
 
         # search_score = 0
