@@ -235,8 +235,11 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             self,
             caption="Select a directory"
         )
-        self.directory_path_label.setText(self.directory_path)
-        self.directory_path_label.adjustSize()
+        if len(self.directory_path) == 0:
+            return
+        else:
+            self.directory_path_label.setText(self.directory_path)
+            self.directory_path_label.adjustSize()
 
     def set_mode_button_clicked(self):
         if(self.dark_mode):
