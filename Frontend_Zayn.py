@@ -28,70 +28,25 @@ pd.set_option("display.max_rows", None)
 pd.set_option("display.max_columns", None)
 
 '''
-The below code is from Github user DataSolveProblems: Display Pandas DataFrame
-'''
 
-'''
-class DataFrameModel(QtCore.QAbstractTableModel):
-    DtypeRole = QtCore.Qt.UserRole + 1000
-    ValueRole = QtCore.Qt.UserRole + 1001
-
-    def __init__(self, df=pd.DataFrame(), parent=None):
-        super(DataFrameModel, self).__init__(parent)
-        self._dataframe = df
-
-    def setDataFrame(self, dataframe):
-        self.beginResetModel()
-        self._dataframe = dataframe.copy()
-        self.endResetModel()
-
-    def dataFrame(self):
-        return self._dataframe
-
-    dataFrame = QtCore.pyqtProperty(pd.DataFrame, fget=dataFrame, fset=setDataFrame)
-
-    @QtCore.pyqtSlot(int, QtCore.Qt.Orientation, result=str)
-    def headerData(self, section: int, orientation: QtCore.Qt.Orientation, role: int = QtCore.Qt.DisplayRole):
-        if role == QtCore.Qt.DisplayRole:
-            if orientation == QtCore.Qt.Horizontal:
-                return self._dataframe.columns[section]
-            else:
-                return str(self._dataframe.index[section])
-        return QtCore.QVariant()
-
-    def rowCount(self, parent=QtCore.QModelIndex()):
-        if parent.isValid():
-            return 0
-        return len(self._dataframe.index)
-
-    def columnCount(self, parent=QtCore.QModelIndex()):
-        if parent.isValid():
-            return 0
-        return self._dataframe.columns.size
-
-    def data(self, index, role=QtCore.Qt.DisplayRole):
-        if not index.isValid() or not (0 <= index.row() < self.rowCount() and 0 <= index.column() < self.columnCount()):
-            return QtCore.QVariant()
-        row = self._dataframe.index[index.row()]
-        col = self._dataframe.columns[index.column()]
-        dt = self._dataframe[col].dtype
-
-        val = self._dataframe.iloc[row][col]
-        if role == QtCore.Qt.DisplayRole:
-            return str(val)
-        elif role == DataFrameModel.ValueRole:
-            return val
-        if role == DataFrameModel.DtypeRole:
-            return dt
-        return QtCore.QVariant()
-
-    def roleNames(self):
-        roles = {
-            QtCore.Qt.DisplayRole: b'display',
-            DataFrameModel.DtypeRole: b'dtype',
-            DataFrameModel.ValueRole: b'value'
-        }
-        return roles
+Code snippet from stackoverflow user eyllansec
+who made a way to click something in a pyqt5 
+application which opens up a pdf document.
+I am interested to see if this may be done for
+all document types for the fname section
+app = QApplication(sys.argv)
+    w = QLabel()
+    path = r"C:\Users\Shaurya\Documents\To be saved\hello.pdf"
+    # or
+    # path = QDir.home().filePath(r"Documents\To be saved\hello.pdf")
+    # or
+    # path = QDir(QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)).filePath(r"To be saved\hello.pdf")
+    url = bytearray(QUrl.fromLocalFile(path).toEncoded()).decode() # file:///C:/Users/Shaurya/Documents/To%20be%20saved/hello.pdf
+    text = "<a href={}>Reference Link> </a>".format(url)
+    w.setText(text)
+    w.setOpenExternalLinks(True)
+    w.show()
+    sys.exit(app.exec_())
 '''
 
 class Ui_MainWindow(QtWidgets.QMainWindow):
@@ -269,7 +224,6 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         print("query:", ANDS, "range", num1, ORS, "range", num2, NOTS, "range", num3)
         self.hide()
 
-        # TODO: hard-coded user inputs; obv change once fully integrated with UI
         dir_path = str(self.directory_path)
         print(dir_path)
         type_dictionary = {
