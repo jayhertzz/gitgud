@@ -343,7 +343,8 @@ def get_text_slice(document, and_page_num, and_idx, search_parameters, type_srch
 def find_matches(text, kws):
     count = 0
     for kw in kws:
-        count += len(text.split(kw)) - 1
+        for txt in text:
+            count += len(txt.split(kw)) - 1
 
     return count
 
