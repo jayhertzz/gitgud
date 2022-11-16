@@ -50,12 +50,12 @@ app = QApplication(sys.argv)
 '''
 
 class Ui_MainWindow(QtWidgets.QMainWindow):
-    ANDS = ""
-    ORS = ""
-    NOTS = ""
+    and_vals = ""
+    or_vals = ""
+    not_vals = ""
     num1 = 0
-    num2 = 0
-    num3 = 0
+    or_range = 0
+    not_range = 0
 
 
     def __init__(self, window2=None):
